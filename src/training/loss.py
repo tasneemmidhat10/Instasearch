@@ -11,7 +11,7 @@ class CLIPContrastiveLoss(nn.Module):
         self.label_smoothing = label_smoothing # to prevent the model from becoming overconfident, adds a regularization term and acts as a calibration for the accuracy scores
         
     def forward(self, z_spec, z_pep):
-        temp = self.log_temp.exp()
+        temp = self.log_temp.clamp(min=math.log(0.04), max=math.log(0.5)).exp()
         logits = (z_spec @ z_pep.T) / temp
         labels = torch.arange(logits.size(0), device=logits.device)
         loss = (F.cross_entropy(logits, labels, label_smoothing=self.label_smoothing) + F.cross_entropy(logits.T, labels, label_smoothing=self.label_smoothing)) / 2
