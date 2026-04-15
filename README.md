@@ -52,15 +52,11 @@ src/
 ### Dependencies
 Install required packages using pip:
 ```bash
-pip install torch torchvision torchaudio
+pip install torch 
 pip install numpy pandas scikit-learn matplotlib seaborn
 pip install transformers huggingface-hub
 ```
 
-For development:
-```bash
-pip install pytest black isort mypy
-```
 
 ### Setup
 1. Clone the repository and navigate to the project directory
