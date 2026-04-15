@@ -9,7 +9,7 @@ import os
 import torch
 from torch.utils.data import DataLoader, random_split
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from datasets import load_dataset
 
 # Add src to path
@@ -32,32 +32,34 @@ def main():
                        help='HuggingFace dataset name')
     parser.add_argument('--dataset_split', type=str, default='train[:20000]',
                        help='Dataset split to use')
-    parser.add_argument('--batch_size', type=int, default=32,
+    parser.add_argument('--batch_size', type=int, default=128,
                        help='Batch size for training')
     
     # Model arguments
-    parser.add_argument('--d_model', type=int, default=512,
+    parser.add_argument('--d_model', type=int, default=256,
                        help='Model dimension')
     parser.add_argument('--n_heads', type=int, default=4,
                        help='Number of attention heads')
-    parser.add_argument('--d_ff', type=int, default=1024,
+    parser.add_argument('--d_ff', type=int, default=512,
                        help='Feed-forward dimension')
-    parser.add_argument('--n_layers', type=int, default=4,
+    parser.add_argument('--n_layers', type=int, default=2,
                        help='Number of transformer layers')
-    parser.add_argument('--embed_dim', type=int, default=128,
+    parser.add_argument('--embed_dim', type=int, default=64,
                        help='Embedding dimension')
-    parser.add_argument('--dropout', type=float, default=0.1,
+    parser.add_argument('--dropout', type=float, default=0.2,
                        help='Dropout rate')
     
     # Training arguments
     parser.add_argument('--num_epochs', type=int, default=25,
                        help='Number of training epochs')
-    parser.add_argument('--learning_rate', type=float, default=5e-5,
+    parser.add_argument('--learning_rate', type=float, default=1e-4,
                        help='Learning rate')
-    parser.add_argument('--weight_decay', type=float, default=1e-2,
+    parser.add_argument('--weight_decay', type=float, default=5e-3,
                        help='Weight decay')
-    parser.add_argument('--init_temp', type=float, default=0.07,
+    parser.add_argument('--init_temp', type=float, default=0.1,
                        help='Initial temperature for contrastive loss')
+    parser.add_argument('--warmup_epochs', type=float, default=5,
+                       help='Sets the warmup epochs for the learning rate')
     
     # Output arguments
     parser.add_argument('--output_dir', type=str, default='./checkpoints',
@@ -128,7 +130,10 @@ def main():
         lr=args.learning_rate, weight_decay=args.weight_decay
     )
 
-    scheduler = CosineAnnealingLR(optimizer, T_max = args.num_epochs)
+    warmup_scheduler = LambdaLR(optimizer, lr_lambda = lambda epoch: min(1.0, (epoch + 1) / args.warmup_epochs)
+    Cosine_scheduler = CosineAnnealingLR(optimizer, T_max = args.num_epochs)
+    scheduler = SequentialLR(optimizer, schedulers=[warmup_scheduler, Cosine_scheduler], milestones=[args.warmup_epochs])
+
     
     # Scaler for mixed precision
     if device.type == 'cuda':
