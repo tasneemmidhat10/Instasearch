@@ -30,9 +30,6 @@ src/
 │   ├── index.py                # Building and managing search indices
 │   ├── rerank.py               # Re-ranking search results
 │   └── search.py               # Core search functionality
-├── retreieval/                 # (Note: Likely a typo - duplicate of retrieval/)
-│   ├── __init__.py
-│   └── search.py
 ├── training/                   # Training and evaluation scripts
 │   ├── __init__.py
 │   ├── evaluate.py             # Model evaluation utilities
