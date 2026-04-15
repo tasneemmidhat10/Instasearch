@@ -1,0 +1,21 @@
+# --- Data Configuration ---
+MAX_PEAKS = 500
+MAX_PEPTIDE_LEN = 42
+NUM_AA = 26
+RADIANT_BASE = 10000.0
+SEED = 42
+
+# --- Model Architecture ---
+D_MODEL = 512
+N_HEADS = 4
+D_FF = 1024
+N_LAYERS = 4
+EMBED_DIM = 128
+DROPOUT = 0.1
+
+# --- Training Schedule ---
+BATCH_SIZE = 32
+NUM_EPOCHS = 25
+LEARNING_RATE = 5e-5
+WEIGHT_DECAY = 1e-2
+INIT_TEMP = 0.07
