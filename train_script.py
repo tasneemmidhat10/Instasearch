@@ -9,6 +9,7 @@ import os
 import torch
 from torch.utils.data import DataLoader, random_split
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from datasets import load_dataset
 
 # Add src to path
@@ -89,14 +90,16 @@ def main():
     df = ds.to_pandas()
     
     print("Preprocessing...")
-    from src.data.preprocess import preprocess_dataset
+
     specs, peps, pres = preprocess_dataset(df)
     
     # Split dataset
-    num_valid = len(specs)
-    train_size = int(0.8 * num_valid)
-    val_size = int(0.1 * num_valid)
+    total_num = len(specs)
+    train_size = int(0.8 * total_num)
+    val_size = int(0.1 * total_num)
     test_size = num_valid - train_size - val_size
+
+    assert len(specs) == len(peps) == len(pres), "Mismatched dataset lengths after preprocessing"
     
     dataset = SpectraPeptideDataset(specs, peps, pres)
     train_ds, val_ds, test_ds = random_split(dataset, [train_size, val_size, test_size], 
@@ -124,6 +127,8 @@ def main():
         list(model_spec.parameters()) + list(model_pep.parameters()) + [loss_fn.log_temp],
         lr=args.learning_rate, weight_decay=args.weight_decay
     )
+
+    scheduler = CosineAnnealingLR(optimizer, T_max = args.num_epochs)
     
     # Scaler for mixed precision
     if device.type == 'cuda':
@@ -137,31 +142,46 @@ def main():
     # Training loop
     history = {'loss': [], 'acc': [], 'val_loss': [], 'val_acc': []}
     print(f"Starting training ({args.num_epochs} epochs)...")
+
+    try:
+        for epoch in range(args.num_epochs):
+            l, a = train_epoch(model_spec, model_pep, train_loader, loss_fn, optimizer, scaler)
+            vl, va = validate(model_spec, model_pep, val_loader, loss_fn)
+            
+            history['loss'].append(l)
+            history['acc'].append(a)
+            history['val_loss'].append(vl)
+            history['val_acc'].append(va)
     
-    for epoch in range(args.num_epochs):
-        l, a = train_epoch(model_spec, model_pep, train_loader, loss_fn, optimizer, scaler)
-        vl, va = validate(model_spec, model_pep, val_loader, loss_fn)
-        
-        history['loss'].append(l)
-        history['acc'].append(a)
-        history['val_loss'].append(vl)
-        history['val_acc'].append(va)
-        
-        print(f"Epoch {epoch+1}/{args.num_epochs} | Loss: {l:.4f} | Acc: {a:.4f} | Val Loss: {vl:.4f} | Val Acc: {va:.4f}")
-        
-        # Save checkpoint
-        if (epoch + 1) % args.save_every == 0:
-            checkpoint_path = os.path.join(args.output_dir, f'checkpoint_epoch_{epoch+1}.pt')
-            torch.save({
-                'epoch': epoch + 1,
-                'model_spec_state_dict': model_spec.state_dict(),
-                'model_pep_state_dict': model_pep.state_dict(),
-                'loss_fn_state_dict': loss_fn.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'history': history,
-                'args': args
-            }, checkpoint_path)
-            print(f"Saved checkpoint: {checkpoint_path}")
+            scheduler.step()
+            
+            print(f"Epoch {epoch+1}/{args.num_epochs} | Loss: {l:.4f} | Acc: {a:.4f} | Val Loss: {vl:.4f} | Val Acc: {va:.4f}")
+            
+            # Save checkpoint
+            if (epoch + 1) % args.save_every == 0:
+                checkpoint_path = os.path.join(args.output_dir, f'checkpoint_epoch_{epoch+1}.pt')
+                torch.save({
+                    'epoch': epoch + 1,
+                    'model_spec_state_dict': model_spec.state_dict(),
+                    'model_pep_state_dict': model_pep.state_dict(),
+                    'loss_fn_state_dict': loss_fn.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'history': history,
+                    'args': args
+                }, checkpoint_path)
+                print(f"Saved checkpoint: {checkpoint_path}")
+                
+    except KeyboardInterrupt:
+        print("Training interrupted. Saving checkpoint...")
+        torch.save({
+                    'epoch': epoch + 1,
+                    'model_spec_state_dict': model_spec.state_dict(),
+                    'model_pep_state_dict': model_pep.state_dict(),
+                    'loss_fn_state_dict': loss_fn.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'history': history,
+                    'args': args
+                }, os.path.join(args.output_dir, 'interrupted_checkpoint.pt'))
     
     # Final evaluation
     test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False)
@@ -174,7 +194,7 @@ def main():
         'model_spec_state_dict': model_spec.state_dict(),
         'model_pep_state_dict': model_pep.state_dict(),
         'loss_fn_state_dict': loss_fn.state_dict(),
-        'args': args,
+        'args': vars(args),
         'history': history
     }, final_path)
     print(f"Saved final model: {final_path}")
