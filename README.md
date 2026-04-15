@@ -103,27 +103,6 @@ for epoch in range(num_epochs):
     print(f"Epoch {epoch}: Loss={train_loss:.4f}, Acc={train_acc:.4f}")
 ```
 
-### Performing Search
-
-```python
-from src.retrieval.search import search_spectra
-from src.models.peptide_encoder import PeptideEncoder
-from src.models.spectrum_encoder import SpectrumEncoder
-
-# Load trained models
-peptide_encoder = PeptideEncoder()
-spectrum_encoder = SpectrumEncoder()
-peptide_encoder.load_state_dict(torch.load('peptide_encoder.pth'))
-spectrum_encoder.load_state_dict(torch.load('spectrum_encoder.pth'))
-
-# Load peptide database
-peptide_db = load_peptide_database()  # Your implementation
-
-# Search
-query_spectra = load_query_spectra()  # Your spectra
-results = search_spectra(query_spectra, peptide_db, 
-                        spectrum_encoder, peptide_encoder)
-```
 
 ## Module Descriptions
 
@@ -182,6 +161,4 @@ This project is part of the InstaSearch proteomics toolkit. See the main reposit
 ## References
 
 - CLIP: Learning Transferable Visual Models From Natural Language Supervision (Radford et al., 2021)
-- InstaNovo: Deep learning-enabled de novo peptide sequencing (Tran et al., 2023)
-- Contrastive learning for peptide-spectrum matching in proteomics</content>
-<parameter name="filePath">c:\Users\tasne\Desktop\InstaSearch Project\project\src\README.md
+- InstaNovo: Deep learning-enabled de novo peptide sequencing (Elof et al., 2023)
