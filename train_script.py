@@ -99,7 +99,7 @@ def main():
     total_num = len(specs)
     train_size = int(0.8 * total_num)
     val_size = int(0.1 * total_num)
-    test_size = num_valid - train_size - val_size
+    test_size = total_num - train_size - val_size
 
     assert len(specs) == len(peps) == len(pres), "Mismatched dataset lengths after preprocessing"
     
@@ -130,7 +130,7 @@ def main():
         lr=args.learning_rate, weight_decay=args.weight_decay
     )
 
-    warmup_scheduler = LambdaLR(optimizer, lr_lambda = lambda epoch: min(1.0, (epoch + 1) / args.warmup_epochs)
+    warmup_scheduler = LambdaLR(optimizer, lr_lambda = lambda epoch: min(1.0, (epoch + 1) / args.warmup_epochs))
     Cosine_scheduler = CosineAnnealingLR(optimizer, T_max = args.num_epochs)
     scheduler = SequentialLR(optimizer, schedulers=[warmup_scheduler, Cosine_scheduler], milestones=[args.warmup_epochs])
 
