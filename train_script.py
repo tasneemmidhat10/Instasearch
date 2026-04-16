@@ -6,6 +6,7 @@ Command-line interface for training the Dual Encoder model for proteomics.
 import argparse
 import sys
 import os
+import math
 import torch
 from torch.utils.data import DataLoader, random_split
 from torch.optim import AdamW
