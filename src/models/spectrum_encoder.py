@@ -35,7 +35,7 @@ class MultiScalePeakEmbedding(nn.Module):
         freqs = 2 * np.pi / torch.logspace(-2, -3, int(h_size / 2), dtype=self.float_dtype)
         self.register_buffer("freqs", freqs)
 
-    def forward(self, spectra: Float[Spectrum, " batch"]) -> Float[SpectrumEmbedding, " batch"]:
+    def forward(self, spectra: torch.Tensor) -> torch.Tensor:
         """Encode peaks."""
         mz_values, intensities = spectra[:, :, [0]], spectra[:, :, [1]]
         x = self.encode_mass(mz_values)
@@ -43,7 +43,7 @@ class MultiScalePeakEmbedding(nn.Module):
         x = torch.cat([x, intensities], axis=2)
         return self.head(x)
 
-    def encode_mass(self, x: Float[Tensor, " batch"]) -> Float[Tensor, "batch embedding"]:
+    def encode_mass(self, x: torch.Tensor) -> torch.Tensor:
         """Encode mz."""
         x = self.freqs[None, None, :] * x
         x = torch.cat([torch.sin(x), torch.cos(x)], axis=2)
