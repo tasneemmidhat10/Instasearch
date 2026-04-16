@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from .peptide_encoder import AA_VOCAB
+from ..models.peptide_encoder import AA_VOCAB
 from ..utils.config import MAX_PEAKS, MAX_PEPTIDE_LEN
 
 def preprocess_spectrum(mz_array, intensity_array, max_peaks=MAX_PEAKS):
