@@ -18,7 +18,10 @@ def train_epoch(model_spec, model_pep, loader, loss_fn, opt, scaler):
                 loss, acc = loss_fn(z_spec, z_pep)
             scaler.scale(loss).backward()
             scaler.unscale_(opt)
-            torch.nn.utils.clip_grad_norm(list(model_spec.parameters() + list(model_pep.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm(
+                list(model_spec.parameters()) + list(model_pep.parameters()),
+                max_norm=1.0
+            )
             scaler.step(opt)
             scaler.update()
         else:
