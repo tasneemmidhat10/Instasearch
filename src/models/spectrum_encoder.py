@@ -1,10 +1,54 @@
 import torch
 import torch.nn as nn
 import sys
-sys.path.insert(0, 'c:/Users/tasne/Desktop/InstaSearch Project/InstaNovo')
-from instanovo.transformer.layers import MultiScalePeakEmbedding
+from typing import List, Tuple, Optional
 from .joint_model import TransformerEncoderBlock, ProjectionHead
 from ..utils.config import D_MODEL, N_HEADS, D_FF, N_LAYERS, EMBED_DIM, DROPOUT
+
+
+class MultiScalePeakEmbedding(nn.Module):
+    """Multi-scale sinusoidal embedding based on Voronov et. al."""
+
+    def __init__(self, h_size: int, dropout: float = 0, float_dtype: torch.dtype | str = torch.float64) -> None:
+        super().__init__()
+        self.h_size = h_size
+        self.float_dtype = getattr(torch, float_dtype, None) if isinstance(float_dtype, str) else float_dtype
+        if self.float_dtype is None:
+            raise ValueError(f"Unknown torch dtype string: {float_dtype}")
+
+        self.mlp = nn.Sequential(
+            nn.Linear(h_size, h_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(h_size, h_size),
+            nn.Dropout(dropout),
+        )
+
+        self.head = nn.Sequential(
+            nn.Linear(h_size + 1, h_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(h_size, h_size),
+            nn.Dropout(dropout),
+        )
+
+        freqs = 2 * np.pi / torch.logspace(-2, -3, int(h_size / 2), dtype=self.float_dtype)
+        self.register_buffer("freqs", freqs)
+
+    def forward(self, spectra: Float[Spectrum, " batch"]) -> Float[SpectrumEmbedding, " batch"]:
+        """Encode peaks."""
+        mz_values, intensities = spectra[:, :, [0]], spectra[:, :, [1]]
+        x = self.encode_mass(mz_values)
+        x = self.mlp(x)
+        x = torch.cat([x, intensities], axis=2)
+        return self.head(x)
+
+    def encode_mass(self, x: Float[Tensor, " batch"]) -> Float[Tensor, "batch embedding"]:
+        """Encode mz."""
+        x = self.freqs[None, None, :] * x
+        x = torch.cat([torch.sin(x), torch.cos(x)], axis=2)
+        return x.float()
+
 
 class SpectrumEncoder(nn.Module):
     """
@@ -17,11 +61,8 @@ class SpectrumEncoder(nn.Module):
         - Charge is embedded via a dedicated nn.Embedding lookup.
         - The two representations are concatenated then projected to D_MODEL
           via a single Linear layer to form the precursor embedding.
-        - This replaces the original bug where a flat Linear(2, D_MODEL) was
-          applied directly to the raw [mz, charge] floats — losing the
-          multi-scale mz information provided by the peak encoder.
     """
-    # Maximum charge state we expect to see (1-based; charges 0..MAX_CHARGE).
+    # Maximum charge state we expect to see 
     MAX_CHARGE: int = 4
 
     def __init__(self, d_model=D_MODEL, n_heads=N_HEADS, d_ff=D_FF, n_layers=N_LAYERS, embed_dim=EMBED_DIM, dropout=DROPOUT):
@@ -61,7 +102,7 @@ class SpectrumEncoder(nn.Module):
         # --- charge branch via nn.Embedding ---
 
         charge_raw = precursors[:, 1]
-        charge_raw = torch.nan_to_num(charge_raw, nan=0.0, posinf=0.0, neginf=0.0)
+        charge_raw = torch.nan_to_num(charge_raw, nan=0.0, posinf=0.0, neginf=0.0) # To deal with NaN, and infinite values of the charge
         charge = charge_raw.long().clamp(0, self.MAX_CHARGE)
         charge_emb  = self.charge_embedding(charge)                       # [B, d_model]
 

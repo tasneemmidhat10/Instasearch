@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 import sys
-sys.path.insert(0, 'c:/Users/tasne/Desktop/InstaSearch Project/InstaNovo')
-from instanovo.transformer.layers import PositionalEncoding
 from .joint_model import TransformerEncoderBlock, ProjectionHead
 from ..utils.config import D_MODEL, N_HEADS, D_FF, N_LAYERS, EMBED_DIM, DROPOUT, MAX_PEPTIDE_LEN
 
@@ -12,6 +10,23 @@ AA_VOCAB = {aa: idx for idx, aa in enumerate([
     "Y", "B", "Z", "X", "U", "O"
 ])}
 NUM_AA = len(AA_VOCAB)
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, dropout=0.1, max_len=43):
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe.unsqueeze(0))  # [1, max_len, d_model]
+
+    def forward(self, x):  # x: [B, seq_len, d_model]
+        x = x + self.pe[:, :x.size(1)]
+        return self.dropout(x)
+
 
 class PeptideEncoder(nn.Module):
     def __init__(self, d_model=D_MODEL, n_heads=N_HEADS, d_ff=D_FF, n_layers=N_LAYERS, embed_dim=EMBED_DIM, max_len=MAX_PEPTIDE_LEN, dropout=DROPOUT):
@@ -49,7 +64,7 @@ class PeptideEncoder(nn.Module):
         cls = self.cls_token.expand(B, -1, -1)                    # [B, 1, d]
         x   = torch.cat([cls, x], dim=1)                          # [B, seq_len+1, d]
 
-        x = self.aa_pos_embed(x.transpose(0, 1)).transpose(0, 1)  # [B, seq_len, d]
+        x = self.aa_pos_embed(x)  # [B, seq_len, d]
 
 
         for layer in self.layers:
