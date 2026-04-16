@@ -21,7 +21,7 @@ from src.training.loss import CLIPContrastiveLoss
 from src.training.train import train_epoch, validate
 from src.data.preprocess import preprocess_dataset
 from src.data.dataset import SpectraPeptideDataset
-from src.utils.config import SEED, DEVICE
+from src.utils.config import SEED
 from src.utils.constants import DEVICE as DEVICE_CONST
 
 def main():
