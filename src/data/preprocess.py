@@ -25,7 +25,10 @@ def preprocess_spectrum(mz_array, intensity_array, max_peaks=MAX_PEAKS):
         top_idx = np.sort(top_idx)
         mz_arr, int_arr = mz_arr[top_idx], int_arr[top_idx]
 
-    # Normalization
+    # Match InstaNovo's training-time intensity scaling: root-scale first,
+    # then L2-normalise. Needed for the frozen InstaNovo backbone to see
+    # the distribution it was trained on.
+    int_arr = np.sqrt(int_arr)
     l2_norm = np.sqrt(np.sum(int_arr ** 2))
     int_arr_norm = int_arr / l2_norm if l2_norm > 0 else int_arr
 
@@ -42,7 +45,9 @@ def preprocess_peptide(sequence, max_len=MAX_PEPTIDE_LEN):
         return np.zeros(max_len, dtype=np.int64)
 
     sequence = sequence[:max_len]
-    indices = [AA_VOCAB.get(aa, 0) for aa in sequence]
+    # Unknown amino acids map to "X" (generic unknown), not 0 which is <PAD>
+    unk_idx = AA_VOCAB.get("X", 0)
+    indices = [AA_VOCAB.get(aa, unk_idx) for aa in sequence]
     indices += [0] * (max_len - len(indices))
     return np.array(indices, dtype=np.int64)
 

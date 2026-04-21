@@ -1,4 +1,3 @@
-import argparse
 import os
 import requests
 import json
@@ -64,15 +63,66 @@ def _make_property(value):
     return {"rich_text": [{"text": {"content": str(value) if value is not None else "auto"}}]}
 
 
-def log_to_notion(run_name, accuracy, hyperparams, only_changed=False):
+def log_experiment(
+    run_name,
+    accuracy,
+    only_changed=False,
+    # Data
+    dataset=DEFAULTS["dataset"],
+    train_split=DEFAULTS["train_split"],
+    val_split=DEFAULTS["val_split"],
+    test_split=DEFAULTS["test_split"],
+    batch_size=DEFAULTS["batch_size"],
+    # Model
+    d_model=DEFAULTS["d_model"],
+    n_heads=DEFAULTS["n_heads"],
+    d_ff=DEFAULTS["d_ff"],
+    n_layers=DEFAULTS["n_layers"],
+    embed_dim=DEFAULTS["embed_dim"],
+    dropout=DEFAULTS["dropout"],
+    # Training
+    num_epochs=DEFAULTS["num_epochs"],
+    learning_rate=DEFAULTS["learning_rate"],
+    weight_decay=DEFAULTS["weight_decay"],
+    init_temp=DEFAULTS["init_temp"],
+    warmup_epochs=DEFAULTS["warmup_epochs"],
+    # Runtime
+    output_dir=DEFAULTS["output_dir"],
+    save_every=DEFAULTS["save_every"],
+    seed=DEFAULTS["seed"],
+    device=DEFAULTS["device"],
+):
     """Log an experiment run to the Notion database.
 
-    Args:
-        run_name:     Identifier for this run.
-        accuracy:     Final accuracy value.
-        hyperparams:  Dict mapping param name to value (use DEFAULTS keys).
-        only_changed: When True, skip params whose value matches the default.
+    Pass only the hyperparameters you changed — set only_changed=True to
+    automatically skip any param that still matches its default value.
+
+    Example:
+        log_experiment("run-01", accuracy=0.92, learning_rate=3e-4, only_changed=True)
     """
+    hyperparams = {
+        'dataset':       dataset,
+        'train_split':   train_split,
+        'val_split':     val_split,
+        'test_split':    test_split,
+        'batch_size':    batch_size,
+        'd_model':       d_model,
+        'n_heads':       n_heads,
+        'd_ff':          d_ff,
+        'n_layers':      n_layers,
+        'embed_dim':     embed_dim,
+        'dropout':       dropout,
+        'num_epochs':    num_epochs,
+        'learning_rate': learning_rate,
+        'weight_decay':  weight_decay,
+        'init_temp':     init_temp,
+        'warmup_epochs': warmup_epochs,
+        'output_dir':    output_dir,
+        'save_every':    save_every,
+        'seed':          seed,
+        'device':        device,
+    }
+
     if not NOTION_TOKEN or not DATABASE_ID:
         raise RuntimeError(
             "NOTION_TOKEN and NOTION_DATABASE_ID must be set in the environment."
@@ -106,52 +156,3 @@ def log_to_notion(run_name, accuracy, hyperparams, only_changed=False):
         print("Successfully logged to Notion!")
     else:
         print(f"Error {response.status_code}: {response.text}")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Log ML experiments to Notion")
-
-    parser.add_argument("--name", type=str, required=True, help="Run name")
-    parser.add_argument("--acc",  type=float, required=True, help="Final accuracy")
-    parser.add_argument(
-        "--only_changed",
-        action="store_true",
-        help="Only log hyperparameters that differ from their default value",
-    )
-
-    # Data
-    parser.add_argument("--dataset",     type=str, default=DEFAULTS["dataset"])
-    parser.add_argument("--train_split", type=str, default=DEFAULTS["train_split"])
-    parser.add_argument("--val_split",   type=str, default=DEFAULTS["val_split"])
-    parser.add_argument("--test_split",  type=str, default=DEFAULTS["test_split"])
-    parser.add_argument("--batch_size",  type=int, default=DEFAULTS["batch_size"])
-
-    # Model
-    parser.add_argument("--d_model",   type=int,   default=DEFAULTS["d_model"])
-    parser.add_argument("--n_heads",   type=int,   default=DEFAULTS["n_heads"])
-    parser.add_argument("--d_ff",      type=int,   default=DEFAULTS["d_ff"])
-    parser.add_argument("--n_layers",  type=int,   default=DEFAULTS["n_layers"])
-    parser.add_argument("--embed_dim", type=int,   default=DEFAULTS["embed_dim"])
-    parser.add_argument("--dropout",   type=float, default=DEFAULTS["dropout"])
-
-    # Training
-    parser.add_argument("--num_epochs",    type=int,   default=DEFAULTS["num_epochs"])
-    parser.add_argument("--learning_rate", type=float, default=DEFAULTS["learning_rate"])
-    parser.add_argument("--weight_decay",  type=float, default=DEFAULTS["weight_decay"])
-    parser.add_argument("--init_temp",     type=float, default=DEFAULTS["init_temp"])
-    parser.add_argument("--warmup_epochs", type=float, default=DEFAULTS["warmup_epochs"])
-
-    # Runtime
-    parser.add_argument("--output_dir", type=str, default=DEFAULTS["output_dir"])
-    parser.add_argument("--save_every", type=int, default=DEFAULTS["save_every"])
-    parser.add_argument("--seed",       type=int, default=DEFAULTS["seed"])
-    parser.add_argument("--device",     type=str, default=DEFAULTS["device"])
-
-    args = parser.parse_args()
-
-    hyperparams = {
-        k: v for k, v in vars(args).items()
-        if k not in ("name", "acc", "only_changed")
-    }
-
-    log_to_notion(args.name, args.acc, hyperparams, only_changed=args.only_changed)

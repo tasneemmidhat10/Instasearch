@@ -131,9 +131,10 @@ def main():
         lr=args.learning_rate, weight_decay=args.weight_decay
     )
 
-    warmup_scheduler = LambdaLR(optimizer, lr_lambda = lambda epoch: min(1.0, (epoch + 1) / args.warmup_epochs))
-    Cosine_scheduler = CosineAnnealingLR(optimizer, T_max = args.num_epochs)
-    scheduler = SequentialLR(optimizer, schedulers=[warmup_scheduler, Cosine_scheduler], milestones=[args.warmup_epochs])
+    warmup_epochs = max(1, int(args.warmup_epochs))
+    warmup_scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: min(1.0, (epoch + 1) / warmup_epochs))
+    Cosine_scheduler = CosineAnnealingLR(optimizer, T_max=args.num_epochs)
+    scheduler = SequentialLR(optimizer, schedulers=[warmup_scheduler, Cosine_scheduler], milestones=[warmup_epochs])
 
     
     # Scaler for mixed precision
@@ -149,20 +150,21 @@ def main():
     history = {'loss': [], 'acc': [], 'val_loss': [], 'val_acc': []}
     print(f"Starting training ({args.num_epochs} epochs)...")
 
+    epoch = -1
     try:
         for epoch in range(args.num_epochs):
             l, a = train_epoch(model_spec, model_pep, train_loader, loss_fn, optimizer, scaler)
             vl, va = validate(model_spec, model_pep, val_loader, loss_fn)
-            
+
             history['loss'].append(l)
             history['acc'].append(a)
             history['val_loss'].append(vl)
             history['val_acc'].append(va)
-    
+
             scheduler.step()
-            
+
             print(f"Epoch {epoch+1}/{args.num_epochs} | Loss: {l:.4f} | Acc: {a:.4f} | Val Loss: {vl:.4f} | Val Acc: {va:.4f}")
-            
+
             # Save checkpoint
             if (epoch + 1) % args.save_every == 0:
                 checkpoint_path = os.path.join(args.output_dir, f'checkpoint_epoch_{epoch+1}.pt')
@@ -176,7 +178,7 @@ def main():
                     'args': args
                 }, checkpoint_path)
                 print(f"Saved checkpoint: {checkpoint_path}")
-                
+
     except KeyboardInterrupt:
         print("Training interrupted. Saving checkpoint...")
         torch.save({

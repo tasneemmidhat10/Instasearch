@@ -1,5 +1,7 @@
 # --- Data Configuration ---
-MAX_PEAKS = 500
+# InstaNovo was trained with the top 200 peaks per spectrum; matching
+# here keeps the frozen backbone in-distribution.
+MAX_PEAKS = 200
 MAX_PEPTIDE_LEN = 42
 NUM_AA = 26
 RADIANT_BASE = 10000.0
