@@ -1,0 +1,18 @@
+# Spectrum side: frozen InstaNovo backbone + projection head.
+# Peptide side: small transformer over ResidueSet vocabulary.
+instanovo_checkpoint: instanovo-v1.2.0   # passed to InstaNovo.from_pretrained
+freeze_backbone: true
+pool_mode: mean                          # mean | latent | precursor
+
+embed_dim: 128                           # joint contrastive embedding dim
+spec_dropout: 0.1                        # dropout in spectrum projection head
+
+# Peptide encoder hyperparameters
+pep_args:
+  d_model: 256
+  n_heads: 4
+  d_ff: 512
+  n_layers: 2
+  embed_dim: 128                         # must match top-level embed_dim
+  max_len: 42
+  dropout: 0.2

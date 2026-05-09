@@ -1,0 +1,11 @@
+name: align_uniform
+_target_: src.training.align_uniform_loss.AlignUniformLoss
+alpha: 2.0
+t: 2.0
+lam: 1.0
+lam_var: 1.0
+decoy_weight: 0.3
+decoy_margin: 0.2
+# When true, the train script generates shuffled decoys and feeds them to the
+# loss as z_decoy. Default false — flip to true to activate the margin term.
+use_decoy: false

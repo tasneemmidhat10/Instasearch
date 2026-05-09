@@ -1,0 +1,6 @@
+name: clip
+_target_: src.training.loss.CLIPContrastiveLoss
+init_temp: 0.1
+label_smoothing: 0.1
+# CLIP does not use decoys; flag retained at top-level for uniform handling.
+use_decoy: false

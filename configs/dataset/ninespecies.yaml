@@ -1,0 +1,5 @@
+name: InstaDeepAI/ms_ninespecies_benchmark
+split: train[:20000]
+batch_size: 128
+num_workers: 0
+max_peaks: 200

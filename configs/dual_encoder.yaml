@@ -1,0 +1,20 @@
+# Top-level Hydra config for dual-encoder training. Mirrors InstaNovo's style:
+# `defaults` composes model / loss / dataset / residues / optim sub-configs.
+defaults:
+  - _self_
+  - model: dual_encoder_default
+  - loss: clip
+  - dataset: ninespecies
+  - residues: default
+  - optim: adamw_warmup_cosine
+
+seed: 42
+device: null            # null = auto-detect (cuda if available)
+amp: true
+output_dir: ./checkpoints
+save_every: 5
+
+# Train/val/test split fractions (test = remainder)
+split:
+  train: 0.8
+  val:   0.1

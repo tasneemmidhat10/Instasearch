@@ -1,0 +1,5 @@
+lr: 1e-4
+weight_decay: 5e-3
+num_epochs: 25
+warmup_epochs: 5
+grad_clip: 1.0
