@@ -559,7 +559,8 @@ def run_retrieval_benchmark(
     # Add GT modified_sequences to the target DB so the recall ceiling is well-defined.
     # (Sequest can return PTMs the digest CSV doesn't enumerate.)
     gt_seqs = sorted(set(psm_df["modified_sequence"].tolist()))
-    extra   = [s for s in gt_seqs if s and s not in set(target_seqs)]
+    target_set = set(target_seqs)
+    extra = [s for s in gt_seqs if s and s not in target_set]
     if extra:
         print(f"  Adding {len(extra):,} PSM-derived targets not in the digest")
         target_seqs = target_seqs + extra
