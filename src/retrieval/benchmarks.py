@@ -67,6 +67,7 @@ class BenchmarkConfig:
     digest_csv:          Path
     decoy_source:        Path                # CSV (one peptide per row) or FASTA
     ms_files:            List[Path] = field(default_factory=list)
+    spectra_csv:         Optional[Path] = None   # alt to ms_files: pre-dumped InstaNovo decoder CSV
     fixed_mods:          str        = "C[UNIMOD:4]"
     var_mod_map:         dict       = field(default_factory=lambda: {
         "Oxidation":         "[UNIMOD:35]",
@@ -91,10 +92,17 @@ class BenchmarkConfig:
         self.out_dir      = Path(self.out_dir)
         if self.percolator_exe is not None:
             self.percolator_exe = Path(self.percolator_exe)
+        if self.spectra_csv is not None:
+            self.spectra_csv = Path(self.spectra_csv)
 
 
 def HELA_PRESET(data_root: str | Path, ms_files: Sequence[str | Path] = ()) -> BenchmarkConfig:
-    """HeLa preset using Gabriel's helaqc_* files in ``data_root``."""
+    """HeLa preset using Gabriel's helaqc_* files in ``data_root``.
+
+    Spectra come from ``helaqc_decoder_search_labelled.csv`` by default (each
+    row already carries the full mz/intensity arrays); pass ``ms_files`` to
+    override with raw mzML/MGF.
+    """
     root = Path(data_root)
     return BenchmarkConfig(
         name         = "hela",
@@ -103,6 +111,7 @@ def HELA_PRESET(data_root: str | Path, ms_files: Sequence[str | Path] = ()) -> B
         digest_csv   = root / "Hela trypsin digest.csv",
         decoy_source = root / "human_extended_normalized.fasta",
         ms_files     = list(ms_files),
+        spectra_csv  = root / "helaqc_decoder_search_labelled.csv",
         out_dir      = root / "benchmark_out" / "hela",
         percolator_exe = root / "percolator.exe",
     )
@@ -387,6 +396,44 @@ def load_ms_spectra(ms_files: Sequence[Path]) -> dict[tuple[str, int], dict]:
     return out
 
 
+def load_ms_spectra_from_csv(csv_path: Path) -> dict[tuple[str, int], dict]:
+    """Build the (stem, scan) -> spectrum index from an InstaNovo decoder CSV.
+
+    The decoder export stores one row per MS2 scan with ``mz_array`` and
+    ``intensity_array`` already serialised as numpy-style bracketed strings,
+    plus ``precursor_mz``, ``precursor_charge``, ``experiment_name``,
+    ``scan_number``. Use this when you have the decoder dump but not the
+    original .raw/.mzML.
+
+    ``experiment_name`` is normalised: a trailing ``_PSM`` is stripped so the
+    stem matches the ``Spectrum File`` column in the PSM CSV (``<basename>.raw``
+    -> stem ``<basename>``).
+    """
+    csv_path = Path(csv_path)
+    cols = [
+        "scan_number", "mz_array", "intensity_array",
+        "precursor_mz", "precursor_charge", "experiment_name",
+    ]
+    df = pd.read_csv(csv_path, usecols=cols, low_memory=False)
+    out: dict[tuple[str, int], dict] = {}
+    for row in tqdm(df.itertuples(index=False), total=len(df),
+                    desc=f"Parsing {csv_path.name}"):
+        stem = str(row.experiment_name)
+        if stem.endswith("_PSM"):
+            stem = stem[:-4]
+        scan = int(row.scan_number)
+        mz   = np.fromstring(str(row.mz_array).strip("[]"),        sep=" ", dtype=np.float64)
+        inten= np.fromstring(str(row.intensity_array).strip("[]"), sep=" ", dtype=np.float64)
+        out[(stem, scan)] = {
+            "mz_array":        mz,
+            "intensity_array": inten,
+            "precursor_mz":    float(row.precursor_mz),
+            "charge":          int(row.precursor_charge),
+        }
+    print(f"  Indexed {len(out):,} MS2 spectra from {csv_path.name}")
+    return out
+
+
 def join_psm_with_spectra(
     psm_df:         pd.DataFrame,
     spectra_index:  dict[tuple[str, int], dict],
@@ -565,7 +612,10 @@ def run_retrieval_benchmark(
         print(f"  Adding {len(extra):,} PSM-derived targets not in the digest")
         target_seqs = target_seqs + extra
 
-    spectra_index = load_ms_spectra(bench_cfg.ms_files)
+    if bench_cfg.spectra_csv is not None and bench_cfg.spectra_csv.exists():
+        spectra_index = load_ms_spectra_from_csv(bench_cfg.spectra_csv)
+    else:
+        spectra_index = load_ms_spectra(bench_cfg.ms_files)
     dataset, kept_df = join_psm_with_spectra(psm_df, spectra_index, residue_set)
 
     index, db_seqs, is_decoy_db = build_database_index(
