@@ -270,8 +270,11 @@ def load_target_peptides(
     col_pep = _normalise_col(df, ["Trypsin Digest Sequences", "Peptide", "Sequence"])
     col_prot = _normalise_col(df, ["Protein Origin", "Protein", "ProteinId"])
 
+    df = df.dropna(subset=[col_pep, col_prot]).reset_index(drop=True)
+
     peptide_to_proteins: dict[str, List[str]] = {}
     for raw_seq, prot in zip(df[col_pep].astype(str), df[col_prot].astype(str)):
+        raw_seq = raw_seq.strip()
         if not raw_seq or any(c in raw_seq for c in "UOX"):
             continue
         mod_seq = format_modified_sequence(raw_seq, "", fixed_mods=fixed_mods)
