@@ -1,0 +1,37 @@
+{
+  "validation": {
+    "rows": 111312,
+    "columns": 12,
+    "sample_idx_unique_sequential": true,
+    "nulls_except_rank_delta": 0,
+    "rank_delta_null_rows": 9056,
+    "rank_delta_null_all_missing_101_to_101": true,
+    "rank_delta_mismatch_nonmissing": 0,
+    "movement_mismatch": 0,
+    "stage1_bucket_mismatch": 0,
+    "rescored_bucket_mismatch": 0,
+    "top1_correct_mismatch_rescored_rank_eq_1": 0,
+    "top1_candidate_mismatch_ground_truth_when_correct": 0,
+    "top10_gt_position_mismatch_rescored_rank": 0,
+    "top10_parse_bad_items_or_indices": 0,
+    "top10_not_10_items": 0,
+    "top10_score_order_bad_item_pairs": 0,
+    "top10_first_matches_top1_candidate": true
+  },
+  "core_metrics": {
+    "rows": 111312,
+    "unique_ground_truth": 30175,
+    "stage1_top1_pct": 59.9944,
+    "rescored_top1_pct": 82.8734,
+    "stage1_top5_pct": 78.8711,
+    "rescored_top5_pct": 91.0019,
+    "stage1_missing_pct": 8.1357,
+    "rescored_missing_pct": 8.1357,
+    "improved_count": 33017,
+    "worsened_count": 3808,
+    "unchanged_count": 65431,
+    "still_missing_count": 9056,
+    "rescued_to_top1_count": 28433,
+    "lost_from_top1_count": 2966
+  }
+}

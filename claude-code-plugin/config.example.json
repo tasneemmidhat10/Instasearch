@@ -1,0 +1,8 @@
+{
+  "backend_url": "https://claude-monitor-2p1u.onrender.com",
+  "ingest_key": "",
+  "device_id": "",
+  "device_name": "",
+  "poll_seconds": 20,
+  "claude_projects_dir": ""
+}

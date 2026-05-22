@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="950" viewBox="0 0 1600 950" role="img" aria-labelledby="title desc">
+  <title id="title">Dual-encoder proteomics retrieval illustration</title>
+  <desc id="desc">An illustrated overview of spectra and peptide inputs flowing through two encoder towers into a shared embedding space for contrastive retrieval.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6fbff"/>
+      <stop offset="0.48" stop-color="#eef6f2"/>
+      <stop offset="1" stop-color="#fff7ed"/>
+    </linearGradient>
+    <linearGradient id="spec" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#276c83"/>
+      <stop offset="1" stop-color="#48a385"/>
+    </linearGradient>
+    <linearGradient id="pep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9a4d2c"/>
+      <stop offset="1" stop-color="#d48a42"/>
+    </linearGradient>
+    <linearGradient id="space" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#23374d"/>
+      <stop offset="1" stop-color="#5b6f95"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#1f2a35" flood-opacity="0.13"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#425466"/>
+    </marker>
+    <style>
+      .label { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #24313d; }
+      .small { font-size: 24px; }
+      .mid { font-size: 31px; font-weight: 650; }
+      .large { font-size: 50px; font-weight: 760; }
+      .caption { font-size: 21px; fill: #5d6b78; }
+      .card { fill: rgba(255,255,255,0.88); stroke: #d9e3ea; stroke-width: 2; rx: 18; filter: url(#shadow); }
+      .soft { fill: #f7fafc; stroke: #d9e3ea; stroke-width: 2; rx: 14; }
+      .flow { stroke: #425466; stroke-width: 5; fill: none; marker-end: url(#arrow); stroke-linecap: round; }
+      .thin { stroke: #d4dee5; stroke-width: 2; }
+      .tick { stroke: #6d7c89; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="950" fill="url(#bg)"/>
+  <circle cx="1320" cy="160" r="190" fill="#e6f1ff" opacity="0.55"/>
+  <circle cx="220" cy="780" r="230" fill="#fff1da" opacity="0.6"/>
+
+  <text x="90" y="92" class="label large">Dual-encoder search for mass-spectrometry proteomics</text>
+  <text x="94" y="132" class="label caption">Spectra and peptide strings are encoded separately, aligned on a unit sphere, then searched with cosine similarity.</text>
+
+  <g transform="translate(95 210)">
+    <rect class="card" width="330" height="250"/>
+    <text x="28" y="52" class="label mid">Spectrum input</text>
+    <text x="30" y="84" class="label caption">m/z and intensity peaks</text>
+    <line x1="42" y1="198" x2="286" y2="198" class="thin"/>
+    <line x1="42" y1="104" x2="42" y2="198" class="thin"/>
+    <g fill="url(#spec)">
+      <rect x="66" y="152" width="10" height="46" rx="4"/>
+      <rect x="102" y="124" width="10" height="74" rx="4"/>
+      <rect x="139" y="169" width="10" height="29" rx="4"/>
+      <rect x="176" y="112" width="10" height="86" rx="4"/>
+      <rect x="214" y="143" width="10" height="55" rx="4"/>
+      <rect x="252" y="92" width="10" height="106" rx="4"/>
+    </g>
+    <path d="M58 176 C92 132, 132 158, 158 126 S226 118, 272 100" fill="none" stroke="#8fc6b7" stroke-width="4" opacity="0.75"/>
+  </g>
+
+  <g transform="translate(95 530)">
+    <rect class="card" width="330" height="250"/>
+    <text x="28" y="52" class="label mid">Peptide input</text>
+    <text x="30" y="84" class="label caption">PTM-aware residue tokens</text>
+    <g transform="translate(34 117)">
+      <rect x="0" y="0" width="44" height="44" rx="10" fill="#fff4e6" stroke="#e0ac76" stroke-width="2"/>
+      <rect x="52" y="0" width="44" height="44" rx="10" fill="#fff4e6" stroke="#e0ac76" stroke-width="2"/>
+      <rect x="104" y="0" width="44" height="44" rx="10" fill="#fff4e6" stroke="#e0ac76" stroke-width="2"/>
+      <rect x="156" y="0" width="70" height="44" rx="10" fill="#ffe8dc" stroke="#ce7b52" stroke-width="2"/>
+      <rect x="234" y="0" width="44" height="44" rx="10" fill="#fff4e6" stroke="#e0ac76" stroke-width="2"/>
+      <text x="15" y="30" class="label small">A</text>
+      <text x="67" y="30" class="label small">C</text>
+      <text x="119" y="30" class="label small">D</text>
+      <text x="168" y="30" class="label small">M*</text>
+      <text x="249" y="30" class="label small">K</text>
+      <path d="M22 76 C58 50, 88 101, 122 76 S188 53, 254 78" fill="none" stroke="url(#pep)" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="42" cy="64" r="8" fill="#d48a42"/>
+      <circle cx="138" cy="83" r="8" fill="#9a4d2c"/>
+      <circle cx="218" cy="68" r="8" fill="#d48a42"/>
+    </g>
+  </g>
+
+  <path d="M430 335 C500 335, 520 335, 590 335" class="flow"/>
+  <path d="M430 655 C500 655, 520 655, 590 655" class="flow"/>
+
+  <g transform="translate(605 220)">
+    <rect class="card" width="380" height="230"/>
+    <text x="30" y="50" class="label mid">Spectrum tower</text>
+    <text x="30" y="83" class="label caption">InstaSearchSpectrumEncoder</text>
+    <rect x="34" y="111" width="312" height="46" rx="12" fill="#e8f6f3" stroke="#9ccfc1" stroke-width="2"/>
+    <text x="54" y="143" class="label small">frozen InstaNovo backbone</text>
+    <rect x="34" y="171" width="312" height="38" rx="10" fill="#f3fbf8" stroke="#b8ddd4" stroke-width="2"/>
+    <text x="54" y="198" class="label small">pool + projection head</text>
+  </g>
+
+  <g transform="translate(605 540)">
+    <rect class="card" width="380" height="230"/>
+    <text x="30" y="50" class="label mid">Peptide tower</text>
+    <text x="30" y="83" class="label caption">PeptideEncoder</text>
+    <rect x="34" y="111" width="312" height="46" rx="12" fill="#fff2e5" stroke="#dfb078" stroke-width="2"/>
+    <text x="54" y="143" class="label small">embedding + CLS token</text>
+    <rect x="34" y="171" width="312" height="38" rx="10" fill="#fff8ef" stroke="#eac89e" stroke-width="2"/>
+    <text x="54" y="198" class="label small">transformer blocks + projection</text>
+  </g>
+
+  <path d="M990 335 C1055 335, 1085 390, 1138 438" class="flow"/>
+  <path d="M990 655 C1055 655, 1085 600, 1138 552" class="flow"/>
+
+  <g transform="translate(1135 280)">
+    <rect class="card" width="370" height="420"/>
+    <text x="34" y="52" class="label mid">Shared embedding space</text>
+    <text x="36" y="85" class="label caption">unit-normalized vectors</text>
+    <g transform="translate(54 120)">
+      <circle cx="130" cy="130" r="120" fill="url(#space)" opacity="0.93"/>
+      <ellipse cx="130" cy="130" rx="120" ry="34" fill="none" stroke="#c5d5f4" stroke-width="3" opacity="0.75"/>
+      <ellipse cx="130" cy="130" rx="34" ry="120" fill="none" stroke="#c5d5f4" stroke-width="3" opacity="0.75" transform="rotate(28 130 130)"/>
+      <ellipse cx="130" cy="130" rx="34" ry="120" fill="none" stroke="#c5d5f4" stroke-width="3" opacity="0.5" transform="rotate(-28 130 130)"/>
+      <circle cx="82" cy="94" r="11" fill="#64d2ad"/>
+      <circle cx="88" cy="102" r="7" fill="#ffd08a"/>
+      <circle cx="179" cy="174" r="11" fill="#64d2ad"/>
+      <circle cx="187" cy="169" r="7" fill="#ffd08a"/>
+      <circle cx="155" cy="82" r="9" fill="#64d2ad"/>
+      <circle cx="163" cy="88" r="7" fill="#ffd08a"/>
+      <path d="M82 94 L88 102 M179 174 L187 169 M155 82 L163 88" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+    </g>
+    <g transform="translate(37 346)">
+      <rect class="soft" width="296" height="46"/>
+      <text x="18" y="31" class="label small">contrastive loss aligns pairs</text>
+    </g>
+  </g>
+
+  <g transform="translate(535 835)">
+    <rect class="soft" width="530" height="60"/>
+    <text x="24" y="39" class="label small">Training: CLIPContrastiveLoss or AlignUniformLoss</text>
+  </g>
+  <path d="M800 830 C910 780, 1035 720, 1160 655" stroke="#8796a3" stroke-width="4" fill="none" marker-end="url(#arrow)" stroke-dasharray="10 12"/>
+
+  <g transform="translate(91 835)">
+    <text class="label caption">Project artifacts: datasets, preprocessing, encoders, HNSW indexing, and retrieval notebooks.</text>
+  </g>
+</svg>

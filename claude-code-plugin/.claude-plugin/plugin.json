@@ -1,0 +1,5 @@
+{
+  "name": "claude-code-usage-monitor",
+  "version": "0.1.0",
+  "description": "Local Claude Code usage monitoring and reporting commands"
+}

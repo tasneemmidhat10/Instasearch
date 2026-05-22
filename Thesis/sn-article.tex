@@ -1,0 +1,786 @@
+%Version 3.1 December 2024
+% See section 11 of the User Manual for version history
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                                                 %%
+%% Please do not use \input{...} to include other tex files.       %%
+%% Submit your LaTeX manuscript as one .tex document.              %%
+%%                                                                 %%
+%% All additional figures and files should be attached             %%
+%% separately and not embedded in the \TeX\ document itself.       %%
+%%                                                                 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%\documentclass[referee,sn-basic]{sn-jnl}% referee option is meant for double line spacing
+
+%%=======================================================%%
+%% to print line numbers in the margin use lineno option %%
+%%=======================================================%%
+
+%%\documentclass[lineno,pdflatex,sn-basic]{sn-jnl}% Basic Springer Nature Reference Style/Chemistry Reference Style
+
+%%=========================================================================================%%
+%% the documentclass is set to pdflatex as default. You can delete it if not appropriate.  %%
+%%=========================================================================================%%
+
+%%\documentclass[sn-basic]{sn-jnl}% Basic Springer Nature Reference Style/Chemistry Reference Style
+
+%%Note: the following reference styles support Namedate and Numbered referencing. By default the style follows the most common style. To switch between the options you can add or remove Numbered in the optional parenthesis. 
+%%The option is available for: sn-basic.bst, sn-chicago.bst%  
+ 
+%%\documentclass[pdflatex,sn-nature]{sn-jnl}% Style for submissions to Nature Portfolio journals
+%%\documentclass[pdflatex,sn-basic]{sn-jnl}% Basic Springer Nature Reference Style/Chemistry Reference Style
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}% Math and Physical Sciences Numbered Reference Style
+%%\documentclass[pdflatex,sn-mathphys-ay]{sn-jnl}% Math and Physical Sciences Author Year Reference Style
+%%\documentclass[pdflatex,sn-aps]{sn-jnl}% American Physical Society (APS) Reference Style
+%%\documentclass[pdflatex,sn-vancouver-num]{sn-jnl}% Vancouver Numbered Reference Style
+%%\documentclass[pdflatex,sn-vancouver-ay]{sn-jnl}% Vancouver Author Year Reference Style
+%%\documentclass[pdflatex,sn-apa]{sn-jnl}% APA Reference Style
+%%\documentclass[pdflatex,sn-chicago]{sn-jnl}% Chicago-based Humanities Reference Style
+
+%%%% Standard Packages
+%%<additional latex packages if required can be included here>
+
+\usepackage{graphicx}%
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage{algorithm}%
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+%%%%
+
+%%%%%=============================================================================%%%%
+%%%%  Remarks: This template is provided to aid authors with the preparation
+%%%%  of original research articles intended for submission to journals published 
+%%%%  by Springer Nature. The guidance has been prepared in partnership with 
+%%%%  production teams to conform to Springer Nature technical requirements. 
+%%%%  Editorial and presentation requirements differ among journal portfolios and 
+%%%%  research disciplines. You may find sections in this template are irrelevant 
+%%%%  to your work and are empowered to omit any such section if allowed by the 
+%%%%  journal you intend to submit to. The submission guidelines and policies 
+%%%%  of the journal take precedence. A detailed User Manual is available in the 
+%%%%  template package for technical guidance.
+%%%%%=============================================================================%%%%
+
+%% as per the requirement new theorem styles can be included as shown below
+\theoremstyle{thmstyleone}%
+\newtheorem{theorem}{Theorem}%  meant for continuous numbers
+%%\newtheorem{theorem}{Theorem}[section]% meant for sectionwise numbers
+%% optional argument [theorem] produces theorem numbering sequence instead of independent numbers for Proposition
+\newtheorem{proposition}[theorem]{Proposition}% 
+%%\newtheorem{proposition}{Proposition}% to get separate numbers for theorem and proposition etc.
+
+\theoremstyle{thmstyletwo}%
+\newtheorem{example}{Example}%
+\newtheorem{remark}{Remark}%
+
+\theoremstyle{thmstylethree}%
+\newtheorem{definition}{Definition}%
+
+\raggedbottom
+%%\unnumbered% uncomment this for unnumbered level heads
+
+\begin{document}
+
+\title[Article Title]{Article Title}
+
+%%=============================================================%%
+%% GivenName	-> \fnm{Joergen W.}
+%% Particle	-> \spfx{van der} -> surname prefix
+%% FamilyName	-> \sur{Ploeg}
+%% Suffix	-> \sfx{IV}
+%% \author*[1,2]{\fnm{Joergen W.} \spfx{van der} \sur{Ploeg} 
+%%  \sfx{IV}}\email{iauthor@gmail.com}
+%%=============================================================%%
+
+\author*[1,2]{\fnm{First} \sur{Author}}\email{iauthor@gmail.com}
+
+\author[2,3]{\fnm{Second} \sur{Author}}\email{iiauthor@gmail.com}
+\equalcont{These authors contributed equally to this work.}
+
+\author[1,2]{\fnm{Third} \sur{Author}}\email{iiiauthor@gmail.com}
+\equalcont{These authors contributed equally to this work.}
+
+\affil*[1]{\orgdiv{Department}, \orgname{Organization}, \orgaddress{\street{Street}, \city{City}, \postcode{100190}, \state{State}, \country{Country}}}
+
+\affil[2]{\orgdiv{Department}, \orgname{Organization}, \orgaddress{\street{Street}, \city{City}, \postcode{10587}, \state{State}, \country{Country}}}
+
+\affil[3]{\orgdiv{Department}, \orgname{Organization}, \orgaddress{\street{Street}, \city{City}, \postcode{610101}, \state{State}, \country{Country}}}
+
+%%==================================%%
+%% Sample for unstructured abstract %%
+%%==================================%%
+
+\abstract{
+Peptide identification via reference database lookup remains the primary method for peptide spectrum matching in mass spectrometry-based proteomics. However, as datasets reach millions of spectra and peptide search spaces expand combinatorially, traditional scoring engines struggle with linear scaling constraints. This project presents \textbf{INstasearch}, a framework designed to enable sublinear candidate retrieval while maintaining the high sensitivity for large scale peptide identification.
+
+\noindent INstasearch utilizes a dual-encoder architecture to project experimental MS/MS spectra and theoretical peptide sequences into a unified latent space. To ensure the learned representations are both robust and informative, we optimize the encoders using a multi-component objective function. This includes \textbf{variance regularization} from the VICReg framework \cite{bardes2021vicreg} to prevent feature collapse, alongside \textbf{alignment and uniformity} losses \cite{DBLP:journals/corr/abs-2005-10242} to ensure that semantically similar pairs are closely clustered while unrelated features span the hypersphere without collapsing into a certain repre. This geometry facilitates efficient \textbf{Approximate Nearest Neighbor (ANN)} retrieval, enabling the framework to identify candidate matches with $O(S \times \log P)$ complexity.
+
+\noindent To bridge the gap between retrieval efficiency and identification accuracy, top-retrieved candidates undergo a \textbf{neural re-ranking} stage. Using the \textbf{InstaNovo} transformer architecture, the framework calculates residue-specific log-probabilities, which are aggregated via a \textbf{geometric mean} to assign a definitive confidence score to each match. Finally, candidates are subjected to \textbf{diffusion-based iterative refinement} to correct local sequence discrepancies against observed fragment ion peaks. 
+}
+
+%%================================%%
+%% Sample for structured abstract %%
+%%================================%%
+
+% \abstract{\textbf{Purpose:} The abstract serves both as a general introduction to the topic and as a brief, non-technical summary of the main results and their implications. The abstract must not include subheadings (unless expressly permitted in the journal's Instructions to Authors), equations or citations. As a guide the abstract should not exceed 200 words. Most journals do not set a hard limit however authors are advised to check the author instructions for the journal they are submitting to.
+% 
+% \textbf{Methods:} The abstract serves both as a general introduction to the topic and as a brief, non-technical summary of the main results and their implications. The abstract must not include subheadings (unless expressly permitted in the journal's Instructions to Authors), equations or citations. As a guide the abstract should not exceed 200 words. Most journals do not set a hard limit however authors are advised to check the author instructions for the journal they are submitting to.
+% 
+% \textbf{Results:} The abstract serves both as a general introduction to the topic and as a brief, non-technical summary of the main results and their implications. The abstract must not include subheadings (unless expressly permitted in the journal's Instructions to Authors), equations or citations. As a guide the abstract should not exceed 200 words. Most journals do not set a hard limit however authors are advised to check the author instructions for the journal they are submitting to.
+% 
+% \textbf{Conclusion:} The abstract serves both as a general introduction to the topic and as a brief, non-technical summary of the main results and their implications. The abstract must not include subheadings (unless expressly permitted in the journal's Instructions to Authors), equations or citations. As a guide the abstract should not exceed 200 words. Most journals do not set a hard limit however authors are advised to check the author instructions for the journal they are submitting to.}
+
+\keywords{keyword1, Keyword2, Keyword3, Keyword4}
+
+%%\pacs[JEL Classification]{D8, H51}
+
+%%\pacs[MSC Classification]{35A01, 65L10, 65L12, 65L20, 65L70}
+
+\maketitle
+
+\section{Introduction}\label{sec1}
+Mass spectrometry is a core technology for molecular identification in proteomics, enabling the characterization of proteins in complex samples and providing insight into the composition, structure, function and control of the proteome \cite{aebersold2016mass}. In bottom-up proteomics, the central task is to infer peptide sequences from tandem mass spectra, typically by matching observed spectra against theoretical spectra generated from an in silico digestion of a protein database. There are two primary methods to solve the peptide assignment problem: database search and de novo sequencing. Traditional database search uses a hand-designed score function to evaluate the quality of a peptide-spectrum match, whereas state-of-the-art de novo sequencing uses a machine learning approach to solve the peptide assignment problem.Accurately producing and evaluating peptide-spectrum matches remains computationally demanding because spectra are noisy, incomplete, and highly variable, potentially leading to errors in the resulting database search algorithm scores \citep{venable2004impact}. This challenge intensifies in searches that must account for post-translational modifications or broader proteoform diversity, where the effective search space expands substantially and conventional heuristic scoring methods become less effective.
+
+\noindent Recent deep learning methods have substantially advanced proteomic spectrum analysis. Transformer-based models such as InstaNovo frame de novo peptide sequencing as a translation problem, mapping fragment ion patterns directly to amino acid sequences without requiring database priors. In parallel, foundation models such as yHydra learn joint representations of tandem mass spectra and peptides in a shared embedding space, enabling efficient similarity search through simple distance computations and GPU-accelerated nearest-neighbor retrieval over large databases. Building on these developments, supervised contrastive learning offers a principled way to improve such joint embeddings by drawing matched peptide-spectrum pairs together while separating mismatched pairs. Combined with diffusion-based sequence refinement, this dual-encoder framework provides a foundation for a fast, accurate, and scalable proteomic database search.
+\section{Related Work}
+\noindent The traditional database search solves the peptide identification problem by searching for an observed MS spectrum against a pre-defined set of peptides in a database using hand-designed score functions to score the top candidate peptides within a certain $m/z$ ratio range. The query spectrum is compared against the theoretical spectrum of each candidate peptide that falls within a pre-specified $m/z$ range. These score functions, conceptually, share the same general approach of measuring the number of shared fragment ion peaks between the observed spectrum and the theoretical spectrum for each peptide, while differing in their implementation details. The widely used score functions are Xcorr, Hyperscore and Andromeda. However, these score functions have been demonstrated to be poorly calibrated \citep{keich2015importance} and can't capture the intricate fragmentation patterns underlying the relationship between the peptides and their associated fragment ion spectra \citep{zolg2018proteometools} \citep{ananth2024learned}. Additionally, database search is limited to peptide sequences present in the database, thus hindering the identification of protein isoforms and engineered or evolved proteins without prior sequence knowledge, and is agnostic to transcription or translation errors \citep{eloff2025instanovo}. Another major limitation of database search is the high computational costs incurred due to the increased search space complexity when accounting for post-translational modifications in open search setting \citep{kong2017msfragger}. 
+
+%==========================================================
+% Methodology
+%==========================================================
+\section{Methodology}
+\label{sec:methodology}
+
+This section describes the contrastive dual-encoder framework developed for spectrum--peptide retrieval, together with the design decisions that emerged from a sequence of training experiments. The methodology evolved iteratively: each substantive change was motivated by an empirical signal observed during training, rather than introduced a priori. We document this evolution because the failure modes encountered and the diagnostic reasoning that resolved them constitute a substantial portion of the contribution.
+
+%----------------------------------------------------------
+\subsection{Dataset and Preprocessing}
+\label{subsec:dataset}
+
+We used the publicly available nine-species benchmark dataset (\texttt{InstaDeepAI/ms\_ninespecies\_benchmark} on HuggingFace), originally introduced by the DeepNovo authors~\cite{tran2017denovo}. The dataset comprises tandem mass spectra acquired by higher-energy collisional dissociation (HCD) on a Q~Exactive instrument across nine species. Eight species were used for training and validation, while \emph{Saccharomyces cerevisiae} (yeast) was held out as a fully out-of-distribution test species. All peptides are tryptic. The training set contains approximately 499{,}402 peptide--spectrum matches (PSMs) and the held-out test set contains 111{,}312 PSMs.
+
+Spectra were preprocessed following the conventions used in the InstaNovo training pipeline. Each spectrum was truncated to its top-500 most intense peaks; intensities were root-scaled and subsequently $\ell_2$-normalised. Peptide sequences were tokenised at the amino acid level. The initial peptide vocabulary contained the 20 canonical amino acids together with the rare residues \texttt{B}, \texttt{Z}, \texttt{X}, \texttt{U}, \texttt{O} and a padding token; in a later iteration this was extended to include modification tokens (Sec.~\ref{subsec:ptm}). Precursor mass and charge state were extracted from the metadata and supplied to the spectrum encoder as additional inputs.
+
+%----------------------------------------------------------
+\subsection{Dual-Encoder Architecture}
+\label{subsec:architecture}
+
+The retrieval system follows a CLIP-style~\cite{radford2021clip} dual-encoder architecture, in which two encoders map a spectrum and a peptide into a shared $d$-dimensional embedding space. Both encoders produce $\ell_2$-normalised outputs, so that cosine similarity reduces to an inner product on the unit hypersphere.
+
+\subsubsection{Spectrum Encoder}
+
+The spectrum encoder reuses the encoder component of the pretrained InstaNovo model~\cite{eloff2023instanovo}, whose Transformer layers were trained on millions of PSMs from ProteomeTools~\cite{zolg2017proteometools}. Only the encoder is used; the autoregressive decoder responsible for de novo sequencing is discarded. The InstaNovo encoder ingests the (m/z, intensity) peak list together with precursor information and produces a sequence of contextualised peak representations of dimension $d_\text{InstaNovo} = 768$.
+
+The backbone is held \emph{frozen} throughout training. A trainable projection head maps the pooled backbone representation into the contrastive embedding space. The projection head is a three-layer multilayer perceptron (MLP) with GELU activations, layer normalisation, and dropout:
+\begin{equation}
+g_\theta : \mathbb{R}^{768} \rightarrow \mathbb{R}^{1536} \rightarrow \mathbb{R}^{1536} \rightarrow \mathbb{R}^d,
+\end{equation}
+followed by $\ell_2$-normalisation. We experimented with the embedding dimensionality $d$ (Sec.~\ref{subsec:embedding-dim}).
+
+\subsubsection{Peptide Encoder}
+
+The peptide encoder is a lightweight Transformer trained from scratch. Tokenised peptide sequences pass through a learned amino acid embedding table, sinusoidal positional encodings, four Transformer encoder layers with $d_\text{model}=128$, four attention heads and feedforward dimension $d_\text{ff}=512$. The final hidden state is mean-pooled over the sequence and projected to the shared embedding space, followed by $\ell_2$-normalisation. The model contains approximately 1.6~million trainable parameters.
+
+%----------------------------------------------------------
+\subsection{Loss Function: Iterative Development}
+\label{subsec:loss}
+
+The choice of loss function emerged from a sequence of training failures and diagnoses rather than from a single principled selection. We document this evolution because each step revealed a specific failure mode of contrastive learning in this domain.
+
+\subsubsection{Baseline: Symmetric InfoNCE}
+
+The baseline loss is the symmetric InfoNCE objective used in CLIP~\cite{radford2021clip}, with a learnable temperature $\tau$ and uniform label smoothing $\varepsilon = 0.1$:
+\begin{align}
+\mathcal{L}_\text{InfoNCE} &= \tfrac{1}{2}\left(\mathcal{L}_\text{s$\rightarrow$p} + \mathcal{L}_\text{p$\rightarrow$s}\right), \\
+\mathcal{L}_\text{s$\rightarrow$p} &= -\frac{1}{B}\sum_{i=1}^{B} \log \frac{\exp(z_i^s \cdot z_i^p / \tau)}{\sum_{j=1}^{B} \exp(z_i^s \cdot z_j^p / \tau)}.
+\end{align}
+A covariance regulariser~\cite{bardes2022vicreg} was added to penalise off-diagonal correlations in the embedding covariance matrix.
+
+\subsubsection{Temperature Collapse and Fixed Annealing}
+
+When the temperature parameter was learned from an initial value of $\tau_0 = 0.07$, training exhibited a characteristic pathology. In-batch accuracy increased monotonically toward 90\%, yet the mean positive cosine similarity \emph{decreased} from approximately 0.78 to 0.50 over the same period. This signature is consistent with a known failure mode: the optimiser drives $\tau$ toward its lower clamp, which sharpens the softmax distribution and inflates the apparent ranking accuracy without improving the underlying alignment of matched pairs~\cite{wang2020understanding}.
+
+We addressed this by replacing the learned temperature with a fixed schedule. Empirically, a constant $\tau = 0.5$ produced the highest mean positive similarity observed (approximately 0.89) but caused severe dimensional collapse in the embedding space (effective rank of 14--20 out of 96 dimensions). A learned temperature recovered effective rank ($\sim$50 out of 96) but at the cost of alignment quality. A linear annealing schedule
+\begin{equation}
+\tau(t) = \tau_\text{start} + (\tau_\text{end} - \tau_\text{start}) \cdot \frac{t}{T}, \quad \tau_\text{start} = 0.5, \tau_\text{end} = 0.1,
+\end{equation}
+combined the benefits of both regimes: warm temperatures in early epochs built strong alignment, while progressive cooling expanded the active embedding subspace.
+
+\subsubsection{Reversed-Peptide Decoy Strategy}
+
+Inspired by the target--decoy strategy that underpins false discovery rate estimation in proteomics database search~\cite{elias2007targetdecoy}, we introduced a reversed-peptide decoy as an explicit competitor in the contrastive loss. For each peptide $p_i$ in the batch, a decoy $p_i^{(d)}$ is constructed by reversing the inner residues while preserving the C-terminal lysine or arginine (consistent with tryptic specificity):
+\begin{equation}
+p_i^{(d)} = \mathrm{reverse}(p_{i,1:L-1}) \,||\, p_{i,L}.
+\end{equation}
+The decoy is encoded through the peptide encoder and its similarity to the corresponding spectrum is appended as an additional column to the in-batch similarity matrix, augmenting it from $B \times B$ to $B \times (B+1)$.
+
+The decoy carries identical amino acid composition, mass and terminal residues to the target, but a different fragmentation pattern. By including it as a competitor in the softmax denominator, the spectrum encoder is required to learn fragmentation-order sensitivity rather than relying on coarse compositional features alone.
+
+\subsubsection{Gradient Detachment of the Decoy}
+
+When gradients were allowed to flow through both the positive and decoy paths into the peptide encoder, training instability emerged: the mean positive similarity declined over training rather than increasing. We diagnosed this as a gradient conflict in the shared peptide encoder parameters. Forward and reversed peptides share substantial overlap in their amino acid embedding tables and propagate through identical Transformer layers, so the alignment gradient (pulling $p_i$ close to spectrum $s_i$) and the decoy repulsion gradient (pushing $p_i^{(d)}$ away from $s_i$) propagate antiparallel updates through the same parameters.
+
+We resolved this by detaching the decoy embeddings from the computation graph (\texttt{torch.no\_grad()} during decoy encoding). With detachment, only the spectrum encoder receives gradients from the decoy term, which is conceptually appropriate: discriminating a target peptide from its reversed counterpart is a property of the spectral representation, not of the peptide representation. Empirically, detached decoys restored monotonic improvement in positive similarity while preserving a growing target--decoy margin.
+
+\subsubsection{Variance Regularisation}
+
+After temperature stabilisation, the effective rank of the embedding space remained low (approximately 20 out of 96 dimensions). The covariance regulariser, which penalises off-diagonal correlations, was insufficient to address this: a representation that uses only 20 uncorrelated dimensions and leaves 76 dimensions inactive satisfies the covariance constraint trivially.
+
+We added a variance term inspired by VICReg~\cite{bardes2022vicreg}, which penalises any embedding dimension whose standard deviation across a batch falls below a threshold $\gamma = 1/\sqrt{d}$:
+\begin{equation}
+\mathcal{L}_\text{var}(\mathbf{Z}) = \frac{1}{d}\sum_{k=1}^{d} \max(0, \gamma - \sigma_k(\mathbf{Z})),
+\end{equation}
+where $\sigma_k(\mathbf{Z})$ is the empirical standard deviation of dimension $k$ across the batch. This provides explicit gradient signal to dormant dimensions that the contrastive loss alone cannot activate. The variance loss was applied symmetrically to both encoders with weight $\lambda_\text{var} = 25$ following the original VICReg recommendation.
+
+\subsubsection{Alignment and Uniformity Loss}
+
+The final and most consequential change replaced the InfoNCE loss entirely with a direct decomposition of contrastive learning into its two component objectives, as derived by Wang and Isola~\cite{wang2020understanding}:
+\begin{align}
+\mathcal{L}_\text{align}(f) &= \mathbb{E}_{(s,p)\sim p_\text{pos}}\left[\|f(s) - f(p)\|_2^\alpha\right], \\
+\mathcal{L}_\text{unif}(f) &= \log \mathbb{E}_{(x,y) \sim p_\text{data}^2}\left[e^{-t\|f(x)-f(y)\|_2^2}\right].
+\end{align}
+The alignment term directly minimises the Euclidean distance between matched spectrum--peptide pairs on the unit hypersphere. The uniformity term, computed separately for each encoder, employs a Gaussian potential to drive the marginal distributions of embeddings toward uniformity on the hypersphere. The total loss is
+\begin{equation}
+\mathcal{L} = \mathcal{L}_\text{align} + \lambda \left(\mathcal{L}_\text{unif}^{(s)} + \mathcal{L}_\text{unif}^{(p)}\right)/2 + \lambda_\text{cov} \mathcal{L}_\text{cov} + \lambda_\text{decoy} \mathcal{L}_\text{decoy},
+\end{equation}
+with $\alpha = 2$, $t = 2$, $\lambda = 1$, $\lambda_\text{cov} = 1$, and $\lambda_\text{decoy} = 0.3$.
+
+This formulation is theoretically motivated by the asymptotic decomposition of the InfoNCE loss into alignment and uniformity in the limit of infinite negative samples~\cite{wang2020understanding}. With finite negatives (here $B = 128$), the contrastive loss is a biased approximation of the asymptotic objective. Direct optimisation of alignment and uniformity uses all $B(B-1)/2$ pairwise distances in the batch rather than $B-1$ negatives per anchor, providing a denser estimate of the uniformity signal.
+
+Empirically, this substitution produced the largest single improvement in our experiments. The alignment--uniformity loss matched the best CLIP-based result by epoch 12 (versus epoch 30 for the CLIP baseline), eliminated the temperature hyperparameter entirely, and produced the cleanest embedding diagnostics across all metrics.
+
+%----------------------------------------------------------
+\subsection{Handling Post-Translational Modifications}
+\label{subsec:ptm}
+
+The nine-species benchmark dataset contains spectra from peptides bearing post-translational modifications (predominantly oxidised methionine). In our initial setup, the peptide vocabulary did not include modification tokens, so modified residues were silently mapped to the padding token. This created a label--spectrum mismatch: the spectrum encoder captured modification-induced peak shifts (e.g.\ $+16$~Da for oxidation) while the peptide encoder received a sequence that did not reflect those modifications.
+
+We addressed this in two stages. First, modified spectra were filtered out of training (approximately 24\% of the dataset), eliminating the mismatch at the cost of reducing dataset size to 380{,}421 PSMs. This change halved the OOD generalisation gap. Second, the peptide vocabulary was extended to include explicit tokens for the modifications present in the dataset (notably \texttt{M[UNIMOD:35]} for methionine oxidation). With modification-aware tokenisation, the full unfiltered dataset of 499{,}402 PSMs could be used for training. The expanded vocabulary increased the effective rank of the embedding space from approximately 33/96 to 59/96, indicating that the additional sequence diversity activated previously dormant capacity in the frozen backbone.
+
+%----------------------------------------------------------
+\subsection{Training Procedure}
+\label{subsec:training}
+
+All models were trained on a single NVIDIA GPU using mixed-precision (FP16) arithmetic via the PyTorch automatic mixed precision (AMP) framework. We used the AdamW optimiser~\cite{loshchilov2019adamw} with an initial learning rate of $3 \times 10^{-4}$, weight decay $10^{-2}$, and a warmup--cosine learning rate schedule (10-epoch linear warmup followed by cosine decay to $10^{-6}$). Training proceeded for 30 epochs with a batch size of 128 spectrum--peptide pairs. Gradient norms were clipped to a maximum of $1.0$.
+
+Each epoch logged training loss, in-batch accuracy, validation loss, validation accuracy, current temperature (when applicable), the variance loss components, and the mean positive--decoy similarity gap measured on the final batch of each epoch. After every training run we conducted a full embedding-space audit on the training and held-out splits, comprising the alignment loss, the per-feature standard deviation, the within-encoder mean off-diagonal cosine similarity, the cross-encoder positive/negative similarity gap, the uniformity loss, and the effective rank computed via the entropy of the normalised singular value spectrum (RankMe~\cite{garrido2023rankme}).
+
+%----------------------------------------------------------
+\subsection{Evaluation Protocol}
+\label{subsec:evaluation}
+
+The downstream task is approximate nearest-neighbour retrieval. For a given spectrum $s$, the retrieval system returns the top-$k$ peptides whose embeddings have the highest cosine similarity to $f_\text{spec}(s)$. We report Recall@$k$ for $k \in \{1, 10, 50, 100, 200, 300\}$, where Recall@$k$ is the fraction of test spectra whose ground-truth peptide appears in the top-$k$ retrieved candidates. Retrieval is performed in chunks of 4{,}096 query embeddings against the full peptide pool in fp32 precision. Equivalent retrieval performance was verified using FAISS~\cite{johnson2019faiss} brute-force search; the difference between PyTorch and FAISS implementations was within 0.04 percentage points at Recall@100.
+
+Two evaluation settings are reported. The training-set evaluation retrieves training queries against the full training peptide pool (499{,}402 candidates). The OOD evaluation retrieves yeast test queries against the full yeast peptide pool (111{,}312 candidates). The two settings are not directly comparable due to differing pool sizes; we report both separately.
+
+%----------------------------------------------------------
+\subsection{Embedding-Space Diagnostics}
+\label{subsec:diagnostics}
+
+Beyond retrieval accuracy, we relied on a suite of geometric diagnostics to characterise the learned embedding space. These diagnostics were essential for identifying failure modes that retrieval accuracy alone did not reveal.
+
+\paragraph{Alignment loss.} The mean squared Euclidean distance between matched pairs, $\mathbb{E}[\|f(s)-f(p)\|^2]$, quantifies the closeness of true spectrum--peptide pairs.
+
+\paragraph{Uniformity loss.} The Wang--Isola uniformity metric, applied separately to each encoder, measures how uniformly embeddings cover the unit hypersphere. Lower (more negative) values indicate better spread.
+
+\paragraph{Effective rank.} We use the entropy-based effective rank of the embedding matrix (RankMe), defined as
+\begin{equation}
+\mathrm{rank}_\text{eff}(\mathbf{Z}) = \exp\left(-\sum_{k=1}^{d} \tilde{\sigma}_k \log \tilde{\sigma}_k\right), \quad \tilde{\sigma}_k = \frac{\sigma_k}{\sum_j \sigma_j},
+\end{equation}
+where $\sigma_k$ are the singular values of $\mathbf{Z}$. This quantity reflects the number of dimensions across which the embedding distribution carries substantial variance, and is scale-invariant.
+
+\paragraph{Per-feature variance and within-encoder cosine similarity.} The mean standard deviation of each embedding dimension across the batch should approach $1/\sqrt{d}$ for embeddings uniformly distributed on the hypersphere. The mean off-diagonal cosine similarity within each encoder should approach zero in the same limit; deviations indicate anisotropy or partial collapse.
+
+\paragraph{Cross-encoder gap.} The difference between mean positive-pair cosine similarity and mean negative-pair cosine similarity quantifies the discriminability of the embedding space for retrieval.
+
+These diagnostics revealed, in successive runs, that the contrastive softmax could achieve high in-batch accuracy while degrading positive-pair alignment (the temperature collapse pathology); that the effective rank could be persistently low even when the covariance regulariser was satisfied (the dimensional collapse pathology); and that the InstaNovo backbone outputs occupy an approximately 388-dimensional manifold within its native 768-dimensional space, while the projection head compressed this further to roughly 33 active dimensions out of 96 in the embedding space, identifying the projection head as a substantial information bottleneck.
+
+%----------------------------------------------------------
+\subsection{Summary of Methodological Choices}
+\label{subsec:summary}
+
+The final training recipe combines: a frozen InstaNovo encoder with a three-layer MLP projection head; a lightweight Transformer peptide encoder with $d_\text{model}=128$; an embedding dimension $d = 96$; modification-aware peptide tokenisation; the alignment + uniformity loss with a detached reversed-peptide decoy margin; covariance regularisation; 30 epochs of AdamW optimisation with warmup--cosine scheduling; batch size 128; and mixed-precision training. Each component was retained because removing or substituting it led to a measurable degradation in either embedding-space diagnostics, retrieval accuracy, or training stability.
+
+\section{Results}\label{sec2}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text.
+
+\section{This is an example for first level head---section head}\label{sec3}
+
+\subsection{This is an example for second level head---subsection head}\label{subsec2}
+
+\subsubsection{This is an example for third level head---subsubsection head}\label{subsubsec2}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. 
+
+\section{Equations}\label{sec4}
+
+Equations in \LaTeX\ can either be inline or on-a-line by itself (``display equations''). For
+inline equations use the \verb+$...$+ commands. E.g.: The equation
+$H\psi = E \psi$ is written via the command \verb+$H \psi = E \psi$+.
+
+For display equations (with auto generated equation numbers)
+one can use the equation or align environments:
+\begin{equation}
+\|\tilde{X}(k)\|^2 \leq\frac{\sum\limits_{i=1}^{p}\left\|\tilde{Y}_i(k)\right\|^2+\sum\limits_{j=1}^{q}\left\|\tilde{Z}_j(k)\right\|^2 }{p+q}.\label{eq1}
+\end{equation}
+where,
+\begin{align}
+D_\mu &=  \partial_\mu - ig \frac{\lambda^a}{2} A^a_\mu \nonumber \\
+F^a_{\mu\nu} &= \partial_\mu A^a_\nu - \partial_\nu A^a_\mu + g f^{abc} A^b_\mu A^a_\nu \label{eq2}
+\end{align}
+Notice the use of \verb+\nonumber+ in the align environment at the end
+of each line, except the last, so as not to produce equation numbers on
+lines where no equation numbers are required. The \verb+\label{}+ command
+should only be used at the last line of an align environment where
+\verb+\nonumber+ is not used.
+\begin{equation}
+Y_\infty = \left( \frac{m}{\textrm{GeV}} \right)^{-3}
+    \left[ 1 + \frac{3 \ln(m/\textrm{GeV})}{15}
+    + \frac{\ln(c_2/5)}{15} \right]
+\end{equation}
+The class file also supports the use of \verb+\mathbb{}+, \verb+\mathscr{}+ and
+\verb+\mathcal{}+ commands. As such \verb+\mathbb{R}+, \verb+\mathscr{R}+
+and \verb+\mathcal{R}+ produces $\mathbb{R}$, $\mathscr{R}$ and $\mathcal{R}$
+respectively (refer Subsubsection~\ref{subsubsec2}).
+
+\section{Tables}\label{sec5}
+
+Tables can be inserted via the normal table and tabular environment. To put
+footnotes inside tables you should use \verb+\footnotetext[]{...}+ tag.
+The footnote appears just below the table itself (refer Tables~\ref{tab1} and \ref{tab2}). 
+For the corresponding footnotemark use \verb+\footnotemark[...]+
+
+\begin{table}[h]
+\caption{Caption text}\label{tab1}%
+\begin{tabular}{@{}llll@{}}
+\toprule
+Column 1 & Column 2  & Column 3 & Column 4\\
+\midrule
+row 1    & data 1   & data 2  & data 3  \\
+row 2    & data 4   & data 5\footnotemark[1]  & data 6  \\
+row 3    & data 7   & data 8  & data 9\footnotemark[2]  \\
+\botrule
+\end{tabular}
+\footnotetext{Source: This is an example of table footnote. This is an example of table footnote.}
+\footnotetext[1]{Example for a first table footnote. This is an example of table footnote.}
+\footnotetext[2]{Example for a second table footnote. This is an example of table footnote.}
+\end{table}
+
+\noindent
+The input format for the above table is as follows:
+
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+\bigskip
+\begin{verbatim}
+\begin{table}[<placement-specifier>]
+\caption{<table-caption>}\label{<table-label>}%
+\begin{tabular}{@{}llll@{}}
+\toprule
+Column 1 & Column 2 & Column 3 & Column 4\\
+\midrule
+row 1 & data 1 & data 2	 & data 3 \\
+row 2 & data 4 & data 5\footnotemark[1] & data 6 \\
+row 3 & data 7 & data 8	 & data 9\footnotemark[2]\\
+\botrule
+\end{tabular}
+\footnotetext{Source: This is an example of table footnote. 
+This is an example of table footnote.}
+\footnotetext[1]{Example for a first table footnote.
+This is an example of table footnote.}
+\footnotetext[2]{Example for a second table footnote. 
+This is an example of table footnote.}
+\end{table}
+\end{verbatim}
+\bigskip
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+
+\begin{table}[h]
+\caption{Example of a lengthy table which is set to full textwidth}\label{tab2}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}lcccccc}
+\toprule%
+& \multicolumn{3}{@{}c@{}}{Element 1\footnotemark[1]} & \multicolumn{3}{@{}c@{}}{Element 2\footnotemark[2]} \\\cmidrule{2-4}\cmidrule{5-7}%
+Project & Energy & $\sigma_{calc}$ & $\sigma_{expt}$ & Energy & $\sigma_{calc}$ & $\sigma_{expt}$ \\
+\midrule
+Element 3  & 990 A & 1168 & $1547\pm12$ & 780 A & 1166 & $1239\pm100$\\
+Element 4  & 500 A & 961  & $922\pm10$  & 900 A & 1268 & $1092\pm40$\\
+\botrule
+\end{tabular*}
+\footnotetext{Note: This is an example of table footnote. This is an example of table footnote this is an example of table footnote this is an example of~table footnote this is an example of table footnote.}
+\footnotetext[1]{Example for a first table footnote.}
+\footnotetext[2]{Example for a second table footnote.}
+\end{table}
+
+In case of double column layout, tables which do not fit in single column width should be set to full text width. For this, you need to use \verb+\begin{table*}+ \verb+...+ \verb+\end{table*}+ instead of \verb+\begin{table}+ \verb+...+ \verb+\end{table}+ environment. Lengthy tables which do not fit in textwidth should be set as rotated table. For this, you need to use \verb+\begin{sidewaystable}+ \verb+...+ \verb+\end{sidewaystable}+ instead of \verb+\begin{table*}+ \verb+...+ \verb+\end{table*}+ environment. This environment puts tables rotated to single column width. For tables rotated to double column width, use \verb+\begin{sidewaystable*}+ \verb+...+ \verb+\end{sidewaystable*}+.
+
+\begin{sidewaystable}
+\caption{Tables which are too long to fit, should be written using the ``sidewaystable'' environment as shown here}\label{tab3}
+\begin{tabular*}{\textheight}{@{\extracolsep\fill}lcccccc}
+\toprule%
+& \multicolumn{3}{@{}c@{}}{Element 1\footnotemark[1]}& \multicolumn{3}{@{}c@{}}{Element\footnotemark[2]} \\\cmidrule{2-4}\cmidrule{5-7}%
+Projectile & Energy	& $\sigma_{calc}$ & $\sigma_{expt}$ & Energy & $\sigma_{calc}$ & $\sigma_{expt}$ \\
+\midrule
+Element 3 & 990 A & 1168 & $1547\pm12$ & 780 A & 1166 & $1239\pm100$ \\
+Element 4 & 500 A & 961  & $922\pm10$  & 900 A & 1268 & $1092\pm40$ \\
+Element 5 & 990 A & 1168 & $1547\pm12$ & 780 A & 1166 & $1239\pm100$ \\
+Element 6 & 500 A & 961  & $922\pm10$  & 900 A & 1268 & $1092\pm40$ \\
+\botrule
+\end{tabular*}
+\footnotetext{Note: This is an example of table footnote this is an example of table footnote this is an example of table footnote this is an example of~table footnote this is an example of table footnote.}
+\footnotetext[1]{This is an example of table footnote.}
+\end{sidewaystable}
+
+\section{Figures}\label{sec6}
+
+As per the \LaTeX\ standards you need to use eps images for \LaTeX\ compilation and \verb+pdf/jpg/png+ images for \verb+PDFLaTeX+ compilation. This is one of the major difference between \LaTeX\ and \verb+PDFLaTeX+. Each image should be from a single input .eps/vector image file. Avoid using subfigures. The command for inserting images for \LaTeX\ and \verb+PDFLaTeX+ can be generalized. The package used to insert images in \verb+LaTeX/PDFLaTeX+ is the graphicx package. Figures can be inserted via the normal figure environment as shown in the below example:
+
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+\bigskip
+\begin{verbatim}
+\begin{figure}[<placement-specifier>]
+\centering
+\includegraphics{<eps-file>}
+\caption{<figure-caption>}\label{<figure-label>}
+\end{figure}
+\end{verbatim}
+\bigskip
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{fig.eps}
+\caption{This is a widefig. This is an example of long caption this is an example of long caption  this is an example of long caption this is an example of long caption}\label{fig1}
+\end{figure}
+
+In case of double column layout, the above format puts figure captions/images to single column width. To get spanned images, we need to provide \verb+\begin{figure*}+ \verb+...+ \verb+\end{figure*}+.
+
+For sample purpose, we have included the width of images in the optional argument of \verb+\includegraphics+ tag. Please ignore this. 
+
+\section{Algorithms, Program codes and Listings}\label{sec7}
+
+Packages \verb+algorithm+, \verb+algorithmicx+ and \verb+algpseudocode+ are used for setting algorithms in \LaTeX\ using the format:
+
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+\bigskip
+\begin{verbatim}
+\begin{algorithm}
+\caption{<alg-caption>}\label{<alg-label>}
+\begin{algorithmic}[1]
+. . .
+\end{algorithmic}
+\end{algorithm}
+\end{verbatim}
+\bigskip
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+
+You may refer above listed package documentations for more details before setting \verb+algorithm+ environment. For program codes, the ``verbatim'' package is required and the command to be used is \verb+\begin{verbatim}+ \verb+...+ \verb+\end{verbatim}+. 
+
+Similarly, for \verb+listings+, use the \verb+listings+ package. \verb+\begin{lstlisting}+ \verb+...+ \verb+\end{lstlisting}+ is used to set environments similar to \verb+verbatim+ environment. Refer to the \verb+lstlisting+ package documentation for more details.
+
+A fast exponentiation procedure:
+
+\lstset{texcl=true,basicstyle=\small\sf,commentstyle=\small\rm,mathescape=true,escapeinside={(*}{*)}}
+\begin{lstlisting}
+begin
+  for $i:=1$ to $10$ step $1$ do
+      expt($2,i$);  
+      newline() od                (*\textrm{Comments will be set flush to the right margin}*)
+where
+proc expt($x,n$) $\equiv$
+  $z:=1$;
+  do if $n=0$ then exit fi;
+     do if odd($n$) then exit fi;                 
+        comment: (*\textrm{This is a comment statement;}*)
+        $n:=n/2$; $x:=x*x$ od;
+     { $n>0$ };
+     $n:=n-1$; $z:=z*x$ od;
+  print($z$). 
+end
+\end{lstlisting}
+
+\begin{algorithm}
+\caption{Calculate $y = x^n$}\label{algo1}
+\begin{algorithmic}[1]
+\Require $n \geq 0 \vee x \neq 0$
+\Ensure $y = x^n$ 
+\State $y \Leftarrow 1$
+\If{$n < 0$}\label{algln2}
+        \State $X \Leftarrow 1 / x$
+        \State $N \Leftarrow -n$
+\Else
+        \State $X \Leftarrow x$
+        \State $N \Leftarrow n$
+\EndIf
+\While{$N \neq 0$}
+        \If{$N$ is even}
+            \State $X \Leftarrow X \times X$
+            \State $N \Leftarrow N / 2$
+        \Else[$N$ is odd]
+            \State $y \Leftarrow y \times X$
+            \State $N \Leftarrow N - 1$
+        \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+\bigskip
+\begin{minipage}{\hsize}%
+\lstset{frame=single,framexleftmargin=-1pt,framexrightmargin=-17pt,framesep=12pt,linewidth=0.98\textwidth,language=pascal}% Set your language (you can change the language for each code-block optionally)
+%%% Start your code-block
+\begin{lstlisting}
+for i:=maxint to 0 do
+begin
+{ do nothing }
+end;
+Write('Case insensitive ');
+Write('Pascal keywords.');
+\end{lstlisting}
+\end{minipage}
+
+\section{Cross referencing}\label{sec8}
+
+Environments such as figure, table, equation and align can have a label
+declared via the \verb+\label{#label}+ command. For figures and table
+environments use the \verb+\label{}+ command inside or just
+below the \verb+\caption{}+ command. You can then use the
+\verb+\ref{#label}+ command to cross-reference them. As an example, consider
+the label declared for Figure~\ref{fig1} which is
+\verb+\label{fig1}+. To cross-reference it, use the command 
+\verb+Figure \ref{fig1}+, for which it comes up as
+``Figure~\ref{fig1}''. 
+
+To reference line numbers in an algorithm, consider the label declared for the line number 2 of Algorithm~\ref{algo1} is \verb+\label{algln2}+. To cross-reference it, use the command \verb+\ref{algln2}+ for which it comes up as line~\ref{algln2} of Algorithm~\ref{algo1}.
+
+\subsection{Details on reference citations}\label{subsec7}
+
+Standard \LaTeX\ permits only numerical citations. To support both numerical and author-year citations this template uses \verb+natbib+ \LaTeX\ package. For style guidance please refer to the template user manual.
+
+Here is an example for \verb+\cite{...}+: \cite{bib1}. Another example for \verb+\citep{...}+: \citep{bib2}. For author-year citation mode, \verb+\cite{...}+ prints Jones et al. (1990) and \verb+\citep{...}+ prints (Jones et al., 1990).
+
+All cited bib entries are printed at the end of this article: \cite{bib3}, \cite{bib4}, \cite{bib5}, \cite{bib6}, \cite{bib7}, \cite{bib8}, \cite{bib9}, \cite{bib10}, \cite{bib11}, \cite{bib12} and \cite{bib13}.
+
+\section{Examples for theorem like environments}\label{sec10}
+
+For theorem like environments, we require \verb+amsthm+ package. There are three types of predefined theorem styles exists---\verb+thmstyleone+, \verb+thmstyletwo+ and \verb+thmstylethree+ 
+
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+\bigskip
+\begin{tabular}{|l|p{19pc}|}
+\hline
+\verb+thmstyleone+ & Numbered, theorem head in bold font and theorem text in italic style \\\hline
+\verb+thmstyletwo+ & Numbered, theorem head in roman font and theorem text in italic style \\\hline
+\verb+thmstylethree+ & Numbered, theorem head in bold font and theorem text in roman style \\\hline
+\end{tabular}
+\bigskip
+%%=============================================%%
+%% For presentation purpose, we have included  %%
+%% \bigskip command. Please ignore this.       %%
+%%=============================================%%
+
+For mathematics journals, theorem styles can be included as shown in the following examples:
+
+\begin{theorem}[Theorem subhead]\label{thm1}
+Example theorem text. Example theorem text. Example theorem text. Example theorem text. Example theorem text. 
+Example theorem text. Example theorem text. Example theorem text. Example theorem text. Example theorem text. 
+Example theorem text. 
+\end{theorem}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text.
+
+\begin{proposition}
+Example proposition text. Example proposition text. Example proposition text. Example proposition text. Example proposition text. 
+Example proposition text. Example proposition text. Example proposition text. Example proposition text. Example proposition text. 
+\end{proposition}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text.
+
+\begin{example}
+Phasellus adipiscing semper elit. Proin fermentum massa
+ac quam. Sed diam turpis, molestie vitae, placerat a, molestie nec, leo. Maecenas lacinia. Nam ipsum ligula, eleifend
+at, accumsan nec, suscipit a, ipsum. Morbi blandit ligula feugiat magna. Nunc eleifend consequat lorem. 
+\end{example}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text.
+
+\begin{remark}
+Phasellus adipiscing semper elit. Proin fermentum massa
+ac quam. Sed diam turpis, molestie vitae, placerat a, molestie nec, leo. Maecenas lacinia. Nam ipsum ligula, eleifend
+at, accumsan nec, suscipit a, ipsum. Morbi blandit ligula feugiat magna. Nunc eleifend consequat lorem. 
+\end{remark}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text.
+
+\begin{definition}[Definition sub head]
+Example definition text. Example definition text. Example definition text. Example definition text. Example definition text. Example definition text. Example definition text. Example definition text. 
+\end{definition}
+
+Additionally a predefined ``proof'' environment is available: \verb+\begin{proof}+ \verb+...+ \verb+\end{proof}+. This prints a ``Proof'' head in italic font style and the ``body text'' in roman font style with an open square at the end of each proof environment. 
+
+\begin{proof}
+Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. 
+\end{proof}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text. Sample body text.
+
+\begin{proof}[Proof of Theorem~{\upshape\ref{thm1}}]
+Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. Example for proof text. 
+\end{proof}
+
+\noindent
+For a quote environment, use \verb+\begin{quote}...\end{quote}+
+\begin{quote}
+Quoted text example. Aliquam porttitor quam a lacus. Praesent vel arcu ut tortor cursus volutpat. In vitae pede quis diam bibendum placerat. Fusce elementum
+convallis neque. Sed dolor orci, scelerisque ac, dapibus nec, ultricies ut, mi. Duis nec dui quis leo sagittis commodo.
+\end{quote}
+
+Sample body text. Sample body text. Sample body text. Sample body text. Sample body text (refer Figure~\ref{fig1}). Sample body text. Sample body text. Sample body text (refer Table~\ref{tab3}). 
+
+\section{Methods}\label{sec11}
+
+Topical subheadings are allowed. Authors must ensure that their Methods section includes adequate experimental and characterization data necessary for others in the field to reproduce their work. Authors are encouraged to include RIIDs where appropriate. 
+
+\textbf{Ethical approval declarations} (only required where applicable) Any article reporting experiment/s carried out on (i)~live vertebrate (or higher invertebrates), (ii)~humans or (iii)~human samples must include an unambiguous statement within the methods section that meets the following requirements: 
+
+\begin{enumerate}[1.]
+\item Approval: a statement which confirms that all experimental protocols were approved by a named institutional and/or licensing committee. Please identify the approving body in the methods section
+
+\item Accordance: a statement explicitly saying that the methods were carried out in accordance with the relevant guidelines and regulations
+
+\item Informed consent (for experiments involving humans or human tissue samples): include a statement confirming that informed consent was obtained from all participants and/or their legal guardian/s
+\end{enumerate}
+
+If your manuscript includes potentially identifying patient/participant information, or if it describes human transplantation research, or if it reports results of a clinical trial then  additional information will be required. Please visit (\url{https://www.nature.com/nature-research/editorial-policies}) for Nature Portfolio journals, (\url{https://www.springer.com/gp/authors-editors/journal-author/journal-author-helpdesk/publishing-ethics/14214}) for Springer Nature journals, or (\url{https://www.biomedcentral.com/getpublished/editorial-policies\#ethics+and+consent}) for BMC.
+
+\section{Discussion}\label{sec12}
+
+Discussions should be brief and focused. In some disciplines use of Discussion or `Conclusion' is interchangeable. It is not mandatory to use both. Some journals prefer a section `Results and Discussion' followed by a section `Conclusion'. Please refer to Journal-level guidance for any specific requirements. 
+
+\section{Conclusion}\label{sec13}
+
+Conclusions may be used to restate your hypothesis or research question, restate your major findings, explain the relevance and the added value of your work, highlight any limitations of your study, describe future directions for research and recommendations. 
+
+In some disciplines use of Discussion or 'Conclusion' is interchangeable. It is not mandatory to use both. Please refer to Journal-level guidance for any specific requirements. 
+
+\backmatter
+
+\bmhead{Supplementary information}
+
+If your article has accompanying supplementary file/s please state so here. 
+
+Authors reporting data from electrophoretic gels and blots should supply the full unprocessed scans for key as part of their Supplementary information. This may be requested by the editorial team/s if it is missing.
+
+Please refer to Journal-level guidance for any specific requirements.
+
+\bmhead{Acknowledgements}
+
+Acknowledgements are not compulsory. Where included they should be brief. Grant or contribution numbers may be acknowledged.
+
+Please refer to Journal-level guidance for any specific requirements.
+
+\section*{Declarations}
+
+Some journals require declarations to be submitted in a standardised format. Please check the Instructions for Authors of the journal to which you are submitting to see if you need to complete this section. If yes, your manuscript must contain the following sections under the heading `Declarations':
+
+\begin{itemize}
+\item Funding
+\item Conflict of interest/Competing interests (check journal-specific guidelines for which heading to use)
+\item Ethics approval and consent to participate
+\item Consent for publication
+\item Data availability 
+\item Materials availability
+\item Code availability 
+\item Author contribution
+\end{itemize}
+
+\noindent
+If any of the sections are not relevant to your manuscript, please include the heading and write `Not applicable' for that section. 
+
+%%===================================================%%
+%% For presentation purpose, we have included        %%
+%% \bigskip command. Please ignore this.             %%
+%%===================================================%%
+\bigskip
+\begin{flushleft}%
+Editorial Policies for:
+
+\bigskip\noindent
+Springer journals and proceedings: \url{https://www.springer.com/gp/editorial-policies}
+
+\bigskip\noindent
+Nature Portfolio journals: \url{https://www.nature.com/nature-research/editorial-policies}
+
+\bigskip\noindent
+\textit{Scientific Reports}: \url{https://www.nature.com/srep/journal-policies/editorial-policies}
+
+\bigskip\noindent
+BMC journals: \url{https://www.biomedcentral.com/getpublished/editorial-policies}
+\end{flushleft}
+
+\begin{appendices}
+
+\section{Section title of first appendix}\label{secA1}
+
+An appendix contains supplementary information that is not an essential part of the text itself but which may be helpful in providing a more comprehensive understanding of the research problem or it is information that is too cumbersome to be included in the body of the paper.
+
+%%=============================================%%
+%% For submissions to Nature Portfolio Journals %%
+%% please use the heading ``Extended Data''.   %%
+%%=============================================%%
+
+%%=============================================================%%
+%% Sample for another appendix section			       %%
+%%=============================================================%%
+
+%% \section{Example of another appendix section}\label{secA2}%
+%% Appendices may be used for helpful, supporting or essential material that would otherwise 
+%% clutter, break up or be distracting to the text. Appendices can consist of sections, figures, 
+%% tables and equations etc.
+
+\end{appendices}
+
+%%===========================================================================================%%
+%% If you are submitting to one of the Nature Portfolio journals, using the eJP submission   %%
+%% system, please include the references within the manuscript file itself. You may do this  %%
+%% by copying the reference list from your .bbl file, paste it into the main manuscript .tex %%
+%% file, and delete the associated \verb+\bibliography+ commands.                            %%
+%%===========================================================================================%%
+
+\bibliography{sn-bibliography}% common bib file
+%% if required, the content of .bbl file can be included here once bbl is generated
+%%\input sn-article.bbl
+
+\end{document}

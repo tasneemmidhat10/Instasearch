@@ -1,0 +1,60 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Vendored / cached Python dependencies (e.g. Codex sandbox)
+.codex_pydeps/
+
+# Nested independent git repos (each has its own .git/ — push separately)
+InstaNovo-internal/
+Thesis/InstaSearch Project/
+
+# --- Data ---
+# Raw and processed proteomics data should not live in git.
+Data - Copy/
+*.mzML
+*.mzXML
+*.mgf
+*.msp
+*.raw
+*.RAW
+*.d/
+
+# --- Checkpoints / large model artifacts ---
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# --- Notebook noise ---
+.ipynb_checkpoints/
+
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# --- Local Claude Code state ---
+.claude/settings.local.json
+.claude/nb_dump.txt

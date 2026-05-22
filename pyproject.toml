@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=69.1.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instasearch"
+version = "0.1.0"
+description = "Dual-encoder retrieval and neural rescoring pipeline for mass spectrometry-based proteomics"
+requires-python = ">=3.10,<3.14"
+license = "Apache-2.0"
+keywords = [
+    "mass spectrometry",
+    "proteomics",
+    "bioinformatics",
+    "machine learning",
+    "deep learning",
+    "dual encoder",
+    "contrastive learning",
+    "de novo peptide sequencing",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    # Deep learning
+    "torch>=2.5,<2.9",
+    # Data
+    "datasets>=3.5.0",
+    "numpy>=2.0.2",
+    "pandas>=2.2.3",
+    # Vector search
+    "faiss-cpu>=1.8.0",
+    # Configuration
+    "hydra-core>=1.3.2",
+    "omegaconf>=2.3.0",
+    # Utilities
+    "tqdm>=4.67.0",
+    "requests>=2.32.3",
+    # Visualisation
+    "matplotlib>=3.9.0",
+    "seaborn>=0.13.2",
+    "scikit-learn>=1.5.2",
+    # Bioinformatics (used in data preparation scripts)
+    "biopython>=1.84",
+]
+
+[project.optional-dependencies]
+# GPU variant — install instead of faiss-cpu when a CUDA device is available
+gpu = [
+    "faiss-gpu>=1.8.0",
+]
+# Full InstaNovo backbone for neural rescoring
+instanovo = [
+    "accelerate>=1.6.0",
+    "pyteomics>=4.7.5",
+    "matchms>=0.28.1",
+    "spectrum-utils>=0.4.2",
+    "polars>=1.12.0",
+    "pubchempy>=1.0.4",
+    "pyyaml>=6.0.2",
+    "python-dotenv>=1.0.1",
+    "jaxtyping>=0.2.34",
+    "jiwer>=3.0.5",
+    "transfusion-asr>=0.1.0",
+    "typer>=0.15.1",
+    "gitpython>=3.1.44",
+    "neptune>=1.13.0",
+    "tensorboard>=2.18.0",
+    "s3fs>=2024.12.0",
+    "polars>=1.12.0",
+]
+dev = [
+    "ipykernel>=6.29.5",
+    "ipywidgets>=8.1.5",
+    "jupyter>=1.1.1",
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "pre-commit>=4.0.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 150
+
+[tool.ruff.lint]
+extend-select = ["I", "E", "F", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

@@ -1,0 +1,44 @@
+# ── Core deep learning ──────────────────────────────────────────────────────
+torch>=2.5,<2.9
+
+# ── Data processing ─────────────────────────────────────────────────────────
+datasets>=3.5.0
+numpy>=2.0.2
+pandas>=2.2.3
+
+# ── Vector search (swap faiss-cpu for faiss-gpu on CUDA machines) ────────────
+faiss-cpu>=1.8.0
+
+# ── Configuration ───────────────────────────────────────────────────────────
+hydra-core>=1.3.2
+omegaconf>=2.3.0
+
+# ── Utilities ───────────────────────────────────────────────────────────────
+tqdm>=4.67.0
+requests>=2.32.3
+
+# ── Visualisation ───────────────────────────────────────────────────────────
+matplotlib>=3.9.0
+seaborn>=0.13.2
+scikit-learn>=1.5.2
+
+# ── Bioinformatics (data preparation scripts) ───────────────────────────────
+biopython>=1.84
+
+# ── InstaNovo backbone (required for neural rescoring in src/retrieval/rerank.py)
+accelerate>=1.6.0
+pyteomics>=4.7.5
+matchms>=0.28.1
+spectrum-utils>=0.4.2
+polars>=1.12.0
+pubchempy>=1.0.4
+pyyaml>=6.0.2
+python-dotenv>=1.0.1
+jaxtyping>=0.2.34
+jiwer>=3.0.5
+transfusion-asr>=0.1.0
+typer>=0.15.1
+gitpython>=3.1.44
+neptune>=1.13.0
+tensorboard>=2.18.0
+s3fs>=2024.12.0
