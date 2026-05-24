@@ -609,14 +609,14 @@ def compute_neural_tda_fdr(
     pep_emb = torch.cat(pep_emb_batches, dim=0).numpy().astype(np.float32, copy=False)
     spec_tensor = torch.cat(spec_batches, dim=0)
     precursor_tensor = torch.cat(precursor_batches, dim=0)
-    n_rows = spec_emb.shape[0]
+    original_n_rows = spec_emb.shape[0]
     if peptide_width is None:
         raise ValueError("Loader produced no batches")
 
     sequences = _extract_modified_sequences(loader, modified_sequences, batch_sequences)
-    if len(sequences) != n_rows:
+    if len(sequences) != original_n_rows:
         raise ValueError(
-            f"modified_sequences length ({len(sequences)}) must match encoded rows ({n_rows})"
+            f"modified_sequences length ({len(sequences)}) must match encoded rows ({original_n_rows})"
         )
 
     unique_targets, first_rows, row_to_unique = build_unique_peptide_db(sequences)
@@ -630,6 +630,24 @@ def compute_neural_tda_fdr(
 
     if len(decoy_sequences) == 0:
         raise ValueError("No valid reverse-inner decoys could be generated")
+
+    analysis_mask = np.isin(row_to_unique, kept_uids)
+    original_row_indices = np.flatnonzero(analysis_mask).astype(np.int64)
+    n_excluded_no_decoy = int(original_n_rows - original_row_indices.size)
+    if original_row_indices.size == 0:
+        raise ValueError("No spectra remain after enforcing 1:1 target-decoy pairing")
+    if n_excluded_no_decoy:
+        print(
+            f"  Excluding {n_excluded_no_decoy:,} spectra whose target peptide "
+            "did not yield a valid 1:1 reverse-inner decoy"
+        )
+
+    spec_emb = spec_emb[analysis_mask]
+    spec_tensor = spec_tensor[analysis_mask]
+    precursor_tensor = precursor_tensor[analysis_mask]
+    sequences = [sequences[int(i)] for i in original_row_indices]
+    row_to_unique = row_to_unique[analysis_mask]
+    n_rows = spec_emb.shape[0]
 
     decoy_tokens = _encode_peptide_strings(decoy_sequences, residue_set, peptide_width, device)
     num_embeddings = getattr(getattr(model_pep, "aa_embed", None), "num_embeddings", None)
@@ -710,6 +728,17 @@ def compute_neural_tda_fdr(
     final_is_decoy = db_is_decoy[final_db_idx]
     final_origin_uid = db_origin_uid[final_db_idx]
     final_sequences = [db_sequences[int(i)] for i in final_db_idx]
+    final_peptide_length = np.asarray(
+        [len(residue_set.tokenize(seq)) for seq in final_sequences],
+        dtype=np.int32,
+    )
+    final_charge = np.asarray(
+        [
+            float(row.detach().cpu().float().view(-1)[1])
+            for row in precursor_tensor
+        ],
+        dtype=np.float32,
+    )
 
     target_hits_total = int((~final_is_decoy).sum())
     decoy_hits_total = int(final_is_decoy.sum())
@@ -752,6 +781,8 @@ def compute_neural_tda_fdr(
 
     results = {
         "n_total": int(n_rows),
+        "n_input_spectra": int(original_n_rows),
+        "n_excluded_no_decoy": n_excluded_no_decoy,
         "n_unique_targets": int(len(unique_targets)),
         "n_targets_with_decoys": int(len(target_sequences)),
         "n_skipped_targets": int(len(unique_targets) - len(target_sequences)),
@@ -766,6 +797,10 @@ def compute_neural_tda_fdr(
         "final_is_decoy": final_is_decoy,
         "final_sequences": final_sequences,
         "final_origin_uid": final_origin_uid,
+        "final_charge": final_charge,
+        "final_peptide_length": final_peptide_length,
+        "true_sequences": sequences,
+        "original_row_indices": original_row_indices,
         "qvalues": qvalues,
         "score_order": order,
         "sorted_scores": sorted_scores,
@@ -776,6 +811,8 @@ def compute_neural_tda_fdr(
         "target_sequences_with_decoys": target_sequences,
         "decoy_sequences": decoy_sequences,
         "row_to_unique": row_to_unique,
+        "target_score_distribution": final_scores[~final_is_decoy],
+        "decoy_score_distribution": final_scores[final_is_decoy],
     }
     if candidate_records is not None:
         results["reranked_candidates"] = candidate_records
@@ -784,6 +821,8 @@ def compute_neural_tda_fdr(
     print("        NEURAL TARGET-DECOY FDR (CASANOVO-DB MEAN LOG-PROB)")
     print("=" * 72)
     print(f"  Spectra searched:       {n_rows}")
+    if n_excluded_no_decoy:
+        print(f"  Spectra excluded:       {n_excluded_no_decoy}")
     print(f"  Unique targets:         {len(unique_targets)}")
     print(f"  Targets with decoys:    {len(target_sequences)}")
     print(f"  Stage-1 candidates:     top-{top_k}")

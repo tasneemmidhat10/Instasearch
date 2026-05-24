@@ -659,21 +659,30 @@ def run_retrieval_benchmark(
     return report, index, db_seqs, is_decoy_db, kept_df, dataset
 
 
-def run_fdr_benchmark(
+def _run_fdr_benchmark_legacy(
     bench_cfg:    BenchmarkConfig,
     model_spec:   nn.Module,
     model_pep:    nn.Module,
     dataset:      SpectraPeptideDataset,
     modified_sequences: List[str],
     device:       torch.device,
+    rescorer_model: Optional[nn.Module] = None,
+    peptide_residue_set = None,
+    stage1_top_k: int = 100,
+    score_mode: str = "geometric_mean",
+    fdr_cutoff: float = 0.01,
     use_external_decoys: bool = True,
     db_seqs:      Optional[List[str]] = None,
     is_decoy_db:  Optional[np.ndarray] = None,
+    residue_set = None,
 ) -> FDRReport:
-    """Run both FDR estimates the way ``src.retrieval.search`` defines them.
+    """Run post-retrieval FDR estimates.
 
-    - ``compute_fdr``       : top-1 precision FDR over unique-modified-sequence DB.
-    - ``compute_tda_fdr``   : target-decoy competition with internal token-level decoys.
+    If ``rescorer_model`` is supplied, TDA follows the analysis plan: retrieve
+    target+decoy candidates, rescore them with the InstaNovo/Casanovo-DB mean
+    log-probability score, exponentiate to ``s = exp(mean log p)``, then run
+    target-decoy competition and report q-values, local FDR/PEP, and the 1%
+    accepted target PSM set.
 
     If ``use_external_decoys=True`` and ``db_seqs/is_decoy_db`` are provided
     (from :func:`build_database_index`), an additional TDA estimate using
@@ -712,6 +721,74 @@ def run_fdr_benchmark(
             device=device,
         )
         tda["external"] = tda_ext
+
+    return FDRReport(name=bench_cfg.name, top1_fdr=top1, tda_fdr=tda)
+
+
+def run_fdr_benchmark(
+    bench_cfg:    BenchmarkConfig,
+    model_spec:   nn.Module,
+    model_pep:    nn.Module,
+    dataset:      SpectraPeptideDataset,
+    modified_sequences: List[str],
+    device:       torch.device,
+    rescorer_model: Optional[nn.Module] = None,
+    peptide_residue_set = None,
+    stage1_top_k: int = 100,
+    score_mode: str = "geometric_mean",
+    fdr_cutoff: float = 0.01,
+    use_external_decoys: bool = True,
+    db_seqs:      Optional[List[str]] = None,
+    is_decoy_db:  Optional[np.ndarray] = None,
+    residue_set = None,
+) -> FDRReport:
+    """Run post-retrieval FDR, using neural TDC when a rescorer is supplied."""
+    bench_cfg.out_dir.mkdir(parents=True, exist_ok=True)
+    loader = DataLoader(dataset, batch_size=512, num_workers=0)
+    score_label = "neural rescore" if rescorer_model is not None else "cosine"
+
+    print(f"\nFDR (top-1 precision, {score_label}) - {bench_cfg.name}")
+    top1 = compute_fdr(
+        model_spec=model_spec,
+        model_pep=model_pep,
+        loader=loader,
+        device=device,
+        modified_sequences=modified_sequences,
+        rescorer_model=rescorer_model,
+        peptide_residue_set=peptide_residue_set,
+        stage1_top_k=stage1_top_k,
+        score_mode=score_mode,
+    )
+
+    print(f"\nFDR (Target-Decoy after {score_label}) - {bench_cfg.name}")
+    tda = compute_tda_fdr(
+        model_spec=model_spec,
+        model_pep=model_pep,
+        loader=loader,
+        device=device,
+        modified_sequences=modified_sequences,
+        decoy_strategy="reverse-inner",
+        rescorer_model=rescorer_model,
+        peptide_residue_set=peptide_residue_set,
+        stage1_top_k=stage1_top_k,
+        score_mode=score_mode,
+        fdr_cutoff=fdr_cutoff,
+    )
+
+    if rescorer_model is None and use_external_decoys and db_seqs is not None and is_decoy_db is not None:
+        print(f"\nFDR (Target-Decoy, external decoy DB) - {bench_cfg.name}")
+        tda["external"] = compute_external_tda_fdr(
+            model_spec=model_spec,
+            dataset=dataset,
+            modified_sequences=modified_sequences,
+            db_seqs=db_seqs,
+            is_decoy_db=is_decoy_db,
+            model_pep=model_pep,
+            residue_set=residue_set,
+            device=device,
+        )
+    elif rescorer_model is not None and use_external_decoys:
+        print("  Skipping legacy external-decoy cosine TDA because neural TDC is active.")
 
     return FDRReport(name=bench_cfg.name, top1_fdr=top1, tda_fdr=tda)
 

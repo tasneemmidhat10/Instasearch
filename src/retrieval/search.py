@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -362,6 +363,72 @@ def candidate_recall(
     return results
 
 
+def _gaussian_kde_eval(
+    samples: np.ndarray,
+    queries: np.ndarray,
+    bandwidth: Optional[float] = None,
+) -> np.ndarray:
+    """Evaluate a 1-D Gaussian KDE at ``queries`` using Silverman's rule.
+
+    Pure-numpy so the FDR machinery doesn't pull scipy. For target/decoy
+    score distributions (typically a few thousand points) the O(N*M)
+    evaluation is fine.
+    """
+    samples = np.asarray(samples, dtype=np.float64).ravel()
+    queries = np.asarray(queries, dtype=np.float64).ravel()
+    n = samples.size
+    if n == 0:
+        return np.zeros_like(queries)
+    if bandwidth is None:
+        std = float(np.std(samples, ddof=1)) if n > 1 else 0.0
+        iqr = float(np.subtract(*np.percentile(samples, [75, 25])))
+        sigma = min(std, iqr / 1.349) if (std > 0 and iqr > 0) else max(std, iqr / 1.349, 1e-3)
+        bandwidth = 0.9 * sigma * n ** (-1.0 / 5.0)
+    bandwidth = max(float(bandwidth), 1e-6)
+    diffs = (queries[:, None] - samples[None, :]) / bandwidth
+    return np.exp(-0.5 * diffs * diffs).sum(axis=1) / (n * bandwidth * np.sqrt(2.0 * np.pi))
+
+
+def _estimate_local_fdr_pep(
+    scores: np.ndarray,
+    is_decoy: np.ndarray,
+    pi0: Optional[float] = None,
+) -> dict:
+    """Fit f_target / f_decoy via Gaussian KDE and derive local FDR (PEP) per PSM.
+
+    Uses the Storey-style decomposition: ``PEP(s) = pi0 * f_decoy(s) /
+    (pi0 * f_decoy(s) + (1 - pi0) * f_target(s))``, where ``pi0`` is the
+    estimated null proportion. ``pi0`` defaults to the empirical decoy
+    fraction among competition winners, which is the standard TDC plug-in.
+
+    Note: the decoy-fraction plug-in is conservative — Storey's right-tail
+    estimator (or a spline-based variant) typically gives a lower pi0 and
+    therefore lower PEP. If a calibration plot of empirical-vs-TDC FDR shows
+    systematic over-conservatism, swap in a tighter pi0 estimator via the
+    ``pi0`` kwarg.
+    """
+    scores = np.asarray(scores, dtype=np.float64)
+    is_decoy = np.asarray(is_decoy, dtype=bool)
+    n = scores.size
+    if n == 0:
+        return {"pep": np.zeros(0), "pi0": 0.0, "f_target": np.zeros(0), "f_decoy": np.zeros(0)}
+
+    target_scores = scores[~is_decoy]
+    decoy_scores = scores[is_decoy]
+    if pi0 is None:
+        pi0 = float(is_decoy.mean()) if n else 0.0
+        pi0 = float(np.clip(pi0, 0.0, 1.0))
+
+    f_t = _gaussian_kde_eval(target_scores, scores)
+    f_d = _gaussian_kde_eval(decoy_scores, scores)
+    num = pi0 * f_d
+    denom = num + (1.0 - pi0) * f_t
+    pep = np.where(denom > 0, num / np.maximum(denom, 1e-300), 1.0)
+    pep = np.clip(pep, 0.0, 1.0)
+
+    return {"pep": pep, "pi0": pi0, "f_target": f_t, "f_decoy": f_d}
+
+
 @torch.no_grad()
 def compute_fdr(
     model_spec: nn.Module,
@@ -373,13 +440,30 @@ def compute_fdr(
     chunk_size: int = 4096,
     duplicate_aggregation: str = "mean",
     normalize: bool = True,
+    rescorer_model: Optional[nn.Module] = None,
+    peptide_residue_set=None,
+    stage1_top_k: int = 50,
+    score_mode: str = "geometric_mean",
 ) -> dict:
     """Compute top-1 FDR against a unique modified-sequence peptide database.
 
-    Unlike row-index evaluation, this treats a prediction as correct when the
-    retrieved unique peptide sequence matches the query row's
-    ``modified_sequence``. This is the right metric when the peptide database
-    has been deduplicated by sequence.
+    Two scoring modes are supported:
+
+    - **Cosine (default, legacy).** Top-1 is chosen by cosine similarity in the
+      dual-encoder embedding space; threshold sweeps are over cosine. This is
+      kept for backward compatibility with training-time diagnostics.
+    - **Neural rescore.** When ``rescorer_model`` (an ``InstaNovo`` instance)
+      and ``peptide_residue_set`` are supplied, the function follows the TDC
+      analysis plan: retrieve the top-``stage1_top_k`` cosine candidates per
+      spectrum, rescore each with InstaNovo to get the Casanovo-DB-style
+      ``s = exp((1/L) * sum log p(aa_i | spectrum))`` (geometric mean of
+      per-residue probabilities), and take the neural top-1. Threshold sweeps
+      and reported scores are then on ``s``, not cosine.
+
+    "Correct" is sequence-string equality between the retrieved peptide and
+    the row's ``modified_sequence``. No decoy database is built here — for
+    target-decoy competition FDR with local FDR / PEP estimation use
+    :func:`compute_tda_fdr` with the same ``rescorer_model``.
 
     Args:
         model_spec: Spectrum encoder in eval mode.
@@ -390,17 +474,43 @@ def compute_fdr(
         device: Torch device.
         modified_sequences: Per-row ground-truth modified peptide strings, e.g.
             ``test_df["modified_sequence"].tolist()`` or ``test_dataset.sequences``.
-        thresholds: Cosine thresholds for FDR curves. Defaults to
+        thresholds: Score thresholds for FDR curves. Defaults to
             ``np.arange(0.0, 1.0, 0.05)``.
         chunk_size: Number of spectra per matrix-multiply chunk.
         duplicate_aggregation: ``"mean"`` averages duplicate peptide embeddings
             before search; ``"first"`` keeps the first row for each sequence.
         normalize: L2-normalise embeddings before cosine similarity.
+        rescorer_model: Optional pretrained ``InstaNovo`` for neural rescoring.
+            When supplied, switches the scoring statistic from cosine to the
+            geometric-mean per-residue probability ``s``.
+        peptide_residue_set: ``ResidueSet`` matching ``rescorer_model``. Required
+            when ``rescorer_model`` is provided.
+        stage1_top_k: Cosine top-k candidates to rescore per spectrum (neural mode only).
+        score_mode: ``"geometric_mean"`` (default) returns ``s = exp(mean log p)``
+            in ``[0, 1]``; ``"mean_logp"`` keeps the raw log-prob mean. Ranking
+            is identical because ``exp`` is monotonic.
 
     Returns:
         Dictionary with top-1 precision/FDR, threshold results, scores, and
-        sequence-level prediction metadata.
+        sequence-level prediction metadata. When neural rescoring is enabled,
+        the dict also contains ``score_mode`` and per-row ``mean_logp``.
     """
+    if rescorer_model is not None:
+        return _compute_fdr_neural(
+            model_spec=model_spec,
+            model_pep=model_pep,
+            rescorer_model=rescorer_model,
+            loader=loader,
+            device=device,
+            modified_sequences=modified_sequences,
+            peptide_residue_set=peptide_residue_set,
+            thresholds=thresholds,
+            stage1_top_k=stage1_top_k,
+            duplicate_aggregation=duplicate_aggregation,
+            normalize=normalize,
+            score_mode=score_mode,
+        )
+
     if thresholds is None:
         thresholds = np.arange(0.0, 1.0, 0.05)
     if duplicate_aggregation not in {"mean", "first"}:
@@ -671,8 +781,27 @@ def compute_tda_fdr(
     pad_idx: Optional[int] = None,
     seed: Optional[int] = 0,
     normalize: bool = True,
+    rescorer_model: Optional[nn.Module] = None,
+    peptide_residue_set=None,
+    stage1_top_k: int = 100,
+    score_mode: str = "geometric_mean",
+    fdr_cutoff: float = 0.01,
 ) -> dict:
     """Estimate FDR with target-decoy competition over unique peptides.
+
+    Two scoring modes are supported:
+
+    - **Cosine (default, legacy).** TDC over the (target + reverse-inner-decoy)
+      DB ranked by cosine similarity.
+    - **Neural rescore (TDC plan).** When ``rescorer_model`` and
+      ``peptide_residue_set`` are supplied, the function runs the full
+      Target-Decoy Competition pipeline from ``TDC_FDR_Analysis_Plan_KK.docx``:
+      reverse-inner decoys (1:1), per-spectrum top-``stage1_top_k`` cosine
+      retrieval over targets+decoys, neural rescoring with
+      ``s = exp((1/L) * sum log p)``, per-spectrum competition keeping the best
+      target-or-decoy candidate, global FDR + q-values, KDE-based local FDR /
+      PEP with a plug-in pi0 estimate, and an accepted-set report at
+      ``fdr_cutoff`` (default 1%).
 
     The target database is the set of unique ``modified_sequence`` values. One
     token-level reverse-inner decoy is generated per unique target peptide,
@@ -706,6 +835,22 @@ def compute_tda_fdr(
         Dictionary containing top-1 target/decoy calls, threshold-level FDR,
         and per-spectrum q-values from sorted target-decoy competition.
     """
+    if rescorer_model is not None:
+        return _compute_tda_fdr_neural(
+            model_spec=model_spec,
+            model_pep=model_pep,
+            rescorer_model=rescorer_model,
+            loader=loader,
+            device=device,
+            modified_sequences=modified_sequences,
+            peptide_residue_set=peptide_residue_set,
+            stage1_top_k=stage1_top_k,
+            thresholds=thresholds,
+            normalize=normalize,
+            score_mode=score_mode,
+            fdr_cutoff=fdr_cutoff,
+        )
+
     if thresholds is None:
         thresholds = np.arange(0.0, 1.0, 0.05)
     if pad_idx is None:
@@ -903,6 +1048,355 @@ def compute_tda_fdr(
     print("=" * 60)
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# Neural-rescore FDR (TDC plan)
+# ---------------------------------------------------------------------------
+
+@torch.no_grad()
+def _compute_fdr_neural(
+    *,
+    model_spec: nn.Module,
+    model_pep: nn.Module,
+    rescorer_model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    modified_sequences: Optional[List[str]],
+    peptide_residue_set,
+    thresholds: Optional[np.ndarray],
+    stage1_top_k: int,
+    duplicate_aggregation: str,
+    normalize: bool,
+    score_mode: str,
+) -> dict:
+    """Neural-rescore top-1 FDR against the unique-target DB (no decoys).
+
+    Retrieves the top-``stage1_top_k`` cosine candidates per spectrum from the
+    deduplicated target DB, rescores them with InstaNovo's per-residue
+    log-prob, and picks the top-1 by neural score. Correctness is
+    sequence-string equality with the row's ``modified_sequence``.
+    """
+    if peptide_residue_set is None:
+        raise ValueError("peptide_residue_set is required when rescorer_model is supplied")
+    if score_mode not in {"geometric_mean", "mean_logp"}:
+        raise ValueError("score_mode must be 'geometric_mean' or 'mean_logp'")
+    if duplicate_aggregation not in {"mean", "first"}:
+        raise ValueError("duplicate_aggregation must be 'mean' or 'first'")
+    if thresholds is None:
+        thresholds = np.linspace(0.0, 1.0, 21) if score_mode == "geometric_mean" else None
+
+    # Lazy import to avoid the search<->rerank cycle at module load time.
+    # NB: keep this independent of rerank's private helpers — inline the
+    # precursor-row conversion below so a rename in rerank can't break us.
+    from src.retrieval.rerank import instanovo_score, PROTON_MASS_AMU as _PROTON_MASS
+
+    def _precursor_row_to_instanovo(precursor: torch.Tensor, target_device: torch.device) -> torch.Tensor:
+        values = precursor.detach().cpu().float().view(-1)
+        if values.numel() >= 3:
+            mass, charge, mz = float(values[0]), float(values[1]), float(values[2])
+        elif values.numel() == 2:
+            mz, charge = float(values[0]), float(values[1])
+            mass = (mz - _PROTON_MASS) * max(charge, 1.0)
+        else:
+            raise ValueError(f"precursor row must have 2 or 3 entries, got {values.numel()}")
+        return torch.tensor([[mass, charge, mz]], dtype=torch.float32, device=target_device)
+
+    model_spec.eval()
+    model_pep.eval()
+    rescorer_model.eval()
+    rescorer_device = next(rescorer_model.parameters()).device
+
+    spec_emb_batches: list[torch.Tensor] = []
+    pep_emb_batches: list[torch.Tensor] = []
+    spec_batches: list[torch.Tensor] = []
+    precursor_batches: list[torch.Tensor] = []
+    batch_sequences: list[str] = []
+
+    for batch in tqdm(loader, desc="Encoding spectra/targets"):
+        specs = batch[0].to(device)
+        peps = batch[1].to(device)
+        pres = batch[2].to(device)
+
+        if modified_sequences is None and len(batch) >= 4:
+            batch_sequences.extend([str(seq) for seq in batch[3]])
+
+        if device.type == "cuda":
+            with torch.amp.autocast("cuda"):
+                z_spec = model_spec(specs, pres)
+                z_pep = model_pep(peps)
+        else:
+            z_spec = model_spec(specs, pres)
+            z_pep = model_pep(peps)
+
+        if normalize:
+            z_spec = F.normalize(z_spec, dim=-1)
+            z_pep = F.normalize(z_pep, dim=-1)
+
+        spec_emb_batches.append(z_spec.cpu().float())
+        pep_emb_batches.append(z_pep.cpu().float())
+        spec_batches.append(batch[0].cpu().float())
+        precursor_batches.append(batch[2].cpu().float())
+
+    spec_emb = torch.cat(spec_emb_batches, dim=0).numpy().astype(np.float32, copy=False)
+    pep_emb = torch.cat(pep_emb_batches, dim=0).numpy().astype(np.float32, copy=False)
+    spec_tensor = torch.cat(spec_batches, dim=0)
+    precursor_tensor = torch.cat(precursor_batches, dim=0)
+    n_rows = spec_emb.shape[0]
+
+    if modified_sequences is None:
+        dataset = getattr(loader, "dataset", None)
+        if hasattr(dataset, "sequences"):
+            modified_sequences = list(dataset.sequences)
+        elif hasattr(dataset, "modified_sequences"):
+            modified_sequences = list(dataset.modified_sequences)
+        elif hasattr(dataset, "df") and "modified_sequence" in dataset.df.columns:
+            modified_sequences = dataset.df["modified_sequence"].tolist()
+        elif batch_sequences:
+            modified_sequences = batch_sequences
+        else:
+            raise ValueError(
+                "Pass modified_sequences=test_df['modified_sequence'].tolist(), "
+                "or make the loader return sequences as its fourth batch item."
+            )
+    modified_sequences = [str(s) for s in modified_sequences]
+    if len(modified_sequences) != n_rows:
+        raise ValueError(
+            f"modified_sequences length ({len(modified_sequences)}) must match rows ({n_rows})"
+        )
+
+    unique_sequences, first_rows, row_to_unique = build_unique_peptide_db(modified_sequences)
+    first_rows_arr = np.asarray(first_rows, dtype=np.int64)
+    if duplicate_aggregation == "first":
+        unique_pep_emb = pep_emb[first_rows_arr]
+    else:
+        n_unique = len(unique_sequences)
+        unique_pep_emb = np.zeros((n_unique, pep_emb.shape[1]), dtype=np.float32)
+        counts = np.zeros(n_unique, dtype=np.int64)
+        np.add.at(unique_pep_emb, row_to_unique, pep_emb)
+        np.add.at(counts, row_to_unique, 1)
+        unique_pep_emb /= counts[:, None]
+        if normalize:
+            norms = np.linalg.norm(unique_pep_emb, axis=1, keepdims=True)
+            unique_pep_emb /= np.where(norms == 0.0, 1.0, norms)
+
+    top_k = min(stage1_top_k, unique_pep_emb.shape[0])
+    top1_unique_ids = np.empty(n_rows, dtype=np.int64)
+    top1_scores = np.empty(n_rows, dtype=np.float32)
+    top1_mean_logp = np.empty(n_rows, dtype=np.float32)
+
+    for row_i in tqdm(range(n_rows), desc="Neural rescoring (no decoys)"):
+        sims = spec_emb[row_i] @ unique_pep_emb.T
+        if top_k < sims.shape[0]:
+            cand_idx = np.argpartition(-sims, kth=top_k - 1)[:top_k]
+            cand_idx = cand_idx[np.argsort(-sims[cand_idx])]
+        else:
+            cand_idx = np.argsort(-sims)
+        cand_sequences = [unique_sequences[int(j)] for j in cand_idx]
+
+        spec_i = spec_tensor[row_i].unsqueeze(0).to(rescorer_device)
+        precursor_i = _precursor_row_to_instanovo(precursor_tensor[row_i], rescorer_device)
+        mean_logp = instanovo_score(
+            rescorer_model, cand_sequences,
+            spectra=spec_i, precursors=precursor_i, reduction="mean",
+        ).numpy()
+        neural_scores = np.exp(mean_logp) if score_mode == "geometric_mean" else mean_logp
+
+        best = int(np.argmax(neural_scores))
+        top1_unique_ids[row_i] = int(cand_idx[best])
+        top1_scores[row_i] = float(neural_scores[best])
+        top1_mean_logp[row_i] = float(mean_logp[best])
+
+    predicted_sequences = [unique_sequences[int(uid)] for uid in top1_unique_ids]
+    correct = top1_unique_ids == row_to_unique
+    tp = int(correct.sum())
+    fp = int((~correct).sum())
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    fdr = 1.0 - precision
+
+    if thresholds is None:
+        finite = top1_scores[np.isfinite(top1_scores)]
+        thresholds = np.unique(np.quantile(finite, np.linspace(0.0, 0.99, 21)))
+
+    threshold_results = []
+    for t in thresholds:
+        accepted = top1_scores >= t
+        n_accepted = int(accepted.sum())
+        if n_accepted == 0:
+            threshold_results.append({
+                "threshold": float(t), "n_accepted": 0,
+                "precision": 0.0, "fdr": 0.0, "fraction_accepted": 0.0,
+            })
+            continue
+        tp_t = int((correct & accepted).sum())
+        fp_t = int((~correct & accepted).sum())
+        prec_t = tp_t / (tp_t + fp_t)
+        threshold_results.append({
+            "threshold": float(t), "n_accepted": n_accepted,
+            "precision": float(prec_t), "fdr": float(1.0 - prec_t),
+            "fraction_accepted": float(n_accepted / n_rows),
+        })
+
+    results = {
+        "n_total": int(n_rows),
+        "n_unique_peptides": int(len(unique_sequences)),
+        "n_correct_top1": tp,
+        "n_incorrect_top1": fp,
+        "precision_top1": float(precision),
+        "fdr_top1": float(fdr),
+        "score_mode": score_mode,
+        "top1_scores": top1_scores,
+        "top1_mean_logp": top1_mean_logp,
+        "correct_top1_scores": top1_scores[correct],
+        "incorrect_top1_scores": top1_scores[~correct],
+        "threshold_results": threshold_results,
+        "unique_sequences": unique_sequences,
+        "row_to_unique": row_to_unique,
+        "top1_unique_ids": top1_unique_ids,
+        "top1_sequences": predicted_sequences,
+        "true_sequences": modified_sequences,
+        "correct_mask": correct,
+    }
+
+    print("=" * 60)
+    print("        FDR EVALUATION (NEURAL RESCORE, UNIQUE TARGETS)")
+    print("=" * 60)
+    print(f"  Total spectra:         {n_rows}")
+    print(f"  Unique peptides:       {len(unique_sequences)}")
+    print(f"  Stage-1 candidates:    top-{top_k}")
+    print(f"  Score mode:            {score_mode}")
+    print(f"  Correct Top-1:         {tp} ({precision * 100:.2f}%)")
+    print(f"  Incorrect Top-1:       {fp}")
+    print(f"  Precision (Top-1):     {precision:.4f}")
+    print(f"  FDR (Top-1):           {fdr:.4f}")
+    print()
+    print("  FDR at score thresholds:")
+    print(f"  {'Threshold':>10} {'Accepted':>10} {'Precision':>10} {'FDR':>10} {'% Kept':>10}")
+    for row in threshold_results:
+        if row["n_accepted"] > 0:
+            print(
+                f"  {row['threshold']:>10.4f} {row['n_accepted']:>10} "
+                f"{row['precision']:>10.4f} {row['fdr']:>10.4f} "
+                f"{row['fraction_accepted'] * 100:>9.1f}%"
+            )
+    print("=" * 60)
+    return results
+
+
+def _compute_tda_fdr_neural(
+    *,
+    model_spec: nn.Module,
+    model_pep: nn.Module,
+    rescorer_model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    modified_sequences: Optional[List[str]],
+    peptide_residue_set,
+    stage1_top_k: int,
+    thresholds: Optional[np.ndarray],
+    normalize: bool,
+    score_mode: str,
+    fdr_cutoff: float,
+) -> dict:
+    """Neural target-decoy competition FDR with KDE local FDR/PEP and a 1% accepted-set report.
+
+    Wraps :func:`src.retrieval.rerank.compute_neural_tda_fdr` and augments the
+    result dict with KDE-fitted local FDR / PEP, a plug-in pi0, and the
+    accepted PSM set at ``fdr_cutoff`` (q-value <= cutoff).
+    """
+    if peptide_residue_set is None:
+        raise ValueError("peptide_residue_set is required when rescorer_model is supplied")
+    if not (0.0 < fdr_cutoff < 1.0):
+        raise ValueError("fdr_cutoff must be in (0, 1)")
+
+    from src.retrieval.rerank import compute_neural_tda_fdr
+
+    base = compute_neural_tda_fdr(
+        model_spec=model_spec,
+        model_pep=model_pep,
+        rescorer_model=rescorer_model,
+        loader=loader,
+        device=device,
+        modified_sequences=modified_sequences,
+        peptide_residue_set=peptide_residue_set,
+        stage1_top_k=stage1_top_k,
+        thresholds=thresholds,
+        score_mode=score_mode,
+        normalize=normalize,
+    )
+
+    scores = np.asarray(base["final_scores"], dtype=np.float64)
+    is_decoy = np.asarray(base["final_is_decoy"], dtype=bool)
+    finite_mask = np.isfinite(scores)
+    pep_full = np.ones_like(scores)
+    pi0 = float(is_decoy[finite_mask].mean()) if finite_mask.any() else 0.0
+    if finite_mask.any():
+        local = _estimate_local_fdr_pep(scores[finite_mask], is_decoy[finite_mask], pi0=pi0)
+        pep_full[finite_mask] = local["pep"]
+        pi0 = float(local["pi0"])
+
+    qvalues = np.asarray(base["qvalues"], dtype=np.float64)
+    accepted = (qvalues <= fdr_cutoff) & (~is_decoy)
+    accepted_idx = np.flatnonzero(accepted)
+    n_accepted = int(accepted.size and accepted.sum())
+    accepted_scores = scores[accepted_idx] if n_accepted else np.zeros(0)
+    score_cutoff = float(accepted_scores.min()) if n_accepted else float("nan")
+
+    competition_psms = pd.DataFrame({
+        "analysis_row": np.arange(scores.size, dtype=np.int64),
+        "original_row": np.asarray(base.get("original_row_indices", np.arange(scores.size)), dtype=np.int64),
+        "is_decoy": is_decoy,
+        "sequence": list(base["final_sequences"]),
+        "true_sequence": list(base.get("true_sequences", [""] * scores.size)),
+        "score": scores,
+        "mean_logp": np.asarray(base["final_mean_logp"], dtype=np.float64),
+        "stage1_cosine": np.asarray(base["final_stage1_cosine"], dtype=np.float64),
+        "qvalue": qvalues,
+        "pep": pep_full,
+        "charge": np.asarray(base["final_charge"], dtype=np.float64),
+        "peptide_length": np.asarray(base["final_peptide_length"], dtype=np.int64),
+    })
+    competition_psms["accepted_1pct_fdr"] = accepted
+    competition_psms = competition_psms.sort_values(
+        ["score", "qvalue"], ascending=[False, True], ignore_index=True
+    )
+    accepted_psms = competition_psms[
+        competition_psms["accepted_1pct_fdr"]
+    ].reset_index(drop=True)
+
+    base["pep"] = pep_full
+    base["pi0"] = pi0
+    base["fdr_cutoff"] = float(fdr_cutoff)
+    base["accepted_mask"] = accepted
+    base["accepted_indices"] = accepted_idx
+    base["accepted_score_cutoff"] = score_cutoff
+    base["n_accepted_at_cutoff"] = n_accepted
+    base["competition_psms"] = competition_psms
+    base["accepted_psms"] = accepted_psms
+    base["diagnostics"] = {
+        "target_scores": scores[~is_decoy],
+        "decoy_scores": scores[is_decoy],
+        "sorted_scores": np.asarray(base["sorted_scores"], dtype=np.float64),
+        "sorted_qvalues": np.asarray(base["sorted_qvalues"], dtype=np.float64),
+        "pep_accepted": pep_full[accepted_idx],
+        "score_cutoff": score_cutoff,
+    }
+
+    print()
+    print("=" * 60)
+    print(f"        LOCAL FDR / PEP  &  ACCEPTED SET @ {fdr_cutoff * 100:.1f}% FDR")
+    print("=" * 60)
+    print(f"  pi0 (null fraction, plug-in):   {pi0:.4f}")
+    print(f"  Accepted target PSMs (q<=cut):  {n_accepted}")
+    if n_accepted:
+        print(f"  Score cutoff at {fdr_cutoff * 100:.1f}% FDR:        {score_cutoff:.6f}")
+        print(f"  PEP at cutoff (median/max):     "
+              f"{float(np.median(pep_full[accepted_idx])):.4f} / "
+              f"{float(np.max(pep_full[accepted_idx])):.4f}")
+    else:
+        print(f"  No PSMs pass q-value <= {fdr_cutoff}.")
+    print("=" * 60)
+    return base
 
 
 __all__ = [
