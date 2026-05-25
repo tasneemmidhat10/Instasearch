@@ -143,7 +143,7 @@ def instanovo_score(
     spectra_embedding: Optional[torch.Tensor] = None,
     reduction:         str = "mean",
 ) -> torch.Tensor:
-    """Casanovo-DB-style score for candidate peptides against ONE spectrum.
+    """A scoring function for candidate peptides against ONE spectrum.
 
     Provide either raw spectrum inputs (``spectra``, ``precursors``,
     optionally ``spectra_mask``) **or** a pre-computed encoder output
@@ -549,9 +549,9 @@ def compute_neural_tda_fdr(
     Pipeline:
     1. Deduplicate the test/database peptides by ``modified_sequence``.
     2. Generate one strict reverse-inner decoy per usable unique target.
-    3. Search spectra against the combined target+decoy DB with Stage-1 cosine.
+    3. Search spectra against the combined target+decoy DB with Stage-1 cosine metric.
     4. Rescore each spectrum's top-k candidates using :func:`instanovo_score`
-       with ``reduction="mean"``: the Casanovo-DB mean per-residue log-prob.
+       with ``reduction="mean"``: the scoring functionmean per-residue log-prob.
     5. Take the neural top-1 and estimate FDR as decoy hits / target hits.
 
     ``score_mode="geometric_mean"`` exponentiates the mean log-probability to
