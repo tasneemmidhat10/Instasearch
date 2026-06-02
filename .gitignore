@@ -39,6 +39,9 @@ Data - Copy/
 *.RAW
 *.d/
 
+# Large analysis outputs (regenerable; exceed GitHub's 100 MB limit)
+results_TDA_yeast.csv
+
 # --- Checkpoints / large model artifacts ---
 checkpoints/
 *.pt
